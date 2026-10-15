@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "CareerPilot"
+description = "A desktop-first career discovery workspace for students and early-career professionals. Search live company career pages and job portals through TinyFish, compare explainable matches, save listings, and track applications."
+version = "1.0.0"
+id = "artifacts/careerpilot"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 20772
+
+[services.development]
+run = "pnpm --filter @workspace/careerpilot run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/careerpilot", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/careerpilot/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "20772"
+BASE_PATH = "/"

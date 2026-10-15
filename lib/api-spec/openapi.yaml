@@ -1,0 +1,408 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: CareerPilot live job discovery API
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: careerpilot
+    description: CareerPilot live job search and listing verification
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      description: Returns server health status
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+  /careerpilot/status:
+    get:
+      operationId: getCareerPilotStatus
+      tags: [careerpilot]
+      summary: Check live search availability
+      responses:
+        "200":
+          description: Search provider availability; no credential is returned
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CareerPilotStatus"
+  /careerpilot/search:
+    post:
+      operationId: searchCareerPilotJobs
+      tags: [careerpilot]
+      summary: Search live job sources with TinyFish
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CareerSearchInput"
+      responses:
+        "200":
+          description: Normalized, deduplicated live listings and scan outcome
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CareerSearchResult"
+        "400":
+          description: Invalid search input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "429":
+          description: TinyFish rate limit
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "502":
+          description: Search provider failed or returned an invalid response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /careerpilot/verify:
+    post:
+      operationId: verifyCareerPilotListing
+      tags: [careerpilot]
+      summary: Recheck a live job listing and its application link
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ListingVerificationInput"
+      responses:
+        "200":
+          description: Verification result based on live source evidence
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListingVerificationResult"
+        "400":
+          description: Invalid listing URL
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "502":
+          description: Verification provider failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+    ApiError:
+      type: object
+      properties:
+        error:
+          type: string
+        code:
+          type: ["string", "null"]
+      required: [error]
+    CareerPilotStatus:
+      type: object
+      properties:
+        provider:
+          type: string
+          enum: [tinyfish]
+        configured:
+          type: boolean
+        message:
+          type: string
+      required: [provider, configured, message]
+    CareerSearchInput:
+      type: object
+      properties:
+        query:
+          type: string
+          minLength: 2
+          maxLength: 300
+        role:
+          type: ["string", "null"]
+        location:
+          type: ["string", "null"]
+        opportunityType:
+          type: string
+          enum: [internship, full-time, both]
+        experienceLevel:
+          type: ["string", "null"]
+        skills:
+          type: array
+          items:
+            type: string
+          maxItems: 30
+        degree:
+          type: ["string", "null"]
+        branch:
+          type: ["string", "null"]
+        graduationYear:
+          type: ["integer", "null"]
+        targetCompanies:
+          type: array
+          items:
+            type: string
+          maxItems: 20
+        preferredIndustries:
+          type: array
+          items:
+            type: string
+          maxItems: 20
+        workAuthorization:
+          type: ["string", "null"]
+        workArrangement:
+          type: ["string", "null"]
+          enum: [remote, hybrid, onsite, null]
+        minimumCompensation:
+          type: ["number", "null"]
+          minimum: 0
+        minimumCompensationCurrency:
+          type: ["string", "null"]
+          enum: [INR, USD, EUR, GBP, CAD, AUD, SGD, OTHER, null]
+        minimumCompensationPeriod:
+          type: ["string", "null"]
+          enum: [hourly, monthly, annual, total, null]
+        visaSponsorship:
+          type: ["string", "null"]
+          enum: [offered, not-offered, any, null]
+      required: [query, opportunityType]
+    MatchFactor:
+      type: object
+      properties:
+        label:
+          type: string
+        status:
+          type: string
+          enum: [matched, mismatch, unknown]
+        explanation:
+          type: string
+        points:
+          type: integer
+      required: [label, status, explanation, points]
+    JobListing:
+      type: object
+      properties:
+        id:
+          type: string
+        canonicalUrl:
+          type: string
+          format: uri
+        title:
+          type: string
+        company:
+          type: string
+        companyUrl:
+          type: ["string", "null"]
+          format: uri
+        applicationUrl:
+          type: ["string", "null"]
+          format: uri
+        sourceName:
+          type: string
+        sourceUrl:
+          type: string
+          format: uri
+        description:
+          type: ["string", "null"]
+        location:
+          type: ["string", "null"]
+        workArrangement:
+          type: ["string", "null"]
+          enum: [remote, hybrid, onsite, null]
+        employmentType:
+          type: string
+          enum: [internship, full-time, part-time, contract, temporary, unknown]
+        experienceLevel:
+          type: ["string", "null"]
+        requiredSkills:
+          type: array
+          items:
+            type: string
+        preferredSkills:
+          type: array
+          items:
+            type: string
+        educationRequirements:
+          type: ["string", "null"]
+        graduationYearRequirements:
+          type: ["string", "null"]
+        salaryMin:
+          type: ["number", "null"]
+        salaryMax:
+          type: ["number", "null"]
+        salaryCurrency:
+          type: ["string", "null"]
+        payPeriod:
+          type: ["string", "null"]
+          enum: [hourly, monthly, annual, total, null]
+        postedAt:
+          type: ["string", "null"]
+        deadline:
+          type: ["string", "null"]
+        visaSponsorship:
+          type: string
+          enum: [offered, unavailable, not-specified, confirm]
+        workAuthorization:
+          type: ["string", "null"]
+        lastCheckedAt:
+          type: string
+          format: date-time
+        listingStatus:
+          type: string
+          enum: [verified, verification-needed, possibly-expired, closed, conflicting]
+        verificationConfidence:
+          type: number
+          minimum: 0
+          maximum: 1
+        verificationNote:
+          type: string
+        matchScore:
+          type: integer
+          minimum: 0
+          maximum: 100
+        matchExplanation:
+          type: string
+        matchBreakdown:
+          type: array
+          items:
+            $ref: "#/components/schemas/MatchFactor"
+        alternativeSources:
+          type: array
+          items:
+            type: string
+            format: uri
+      required:
+        - id
+        - canonicalUrl
+        - title
+        - company
+        - sourceName
+        - sourceUrl
+        - employmentType
+        - requiredSkills
+        - preferredSkills
+        - visaSponsorship
+        - lastCheckedAt
+        - listingStatus
+        - verificationConfidence
+        - verificationNote
+        - matchScore
+        - matchExplanation
+        - matchBreakdown
+        - alternativeSources
+    SearchStage:
+      type: object
+      properties:
+        name:
+          type: string
+          enum:
+            - searching
+            - reading
+            - checking-links
+            - deduplicating
+            - matching
+        completed:
+          type: boolean
+        detail:
+          type: string
+      required: [name, completed, detail]
+    CareerSearchResult:
+      type: object
+      properties:
+        query:
+          type: string
+        results:
+          type: array
+          items:
+            $ref: "#/components/schemas/JobListing"
+        sourcesQueried:
+          type: integer
+        successfulSources:
+          type: integer
+        failedSources:
+          type: integer
+        partialResults:
+          type: boolean
+        warnings:
+          type: array
+          items:
+            type: string
+        scannedAt:
+          type: string
+          format: date-time
+        stages:
+          type: array
+          items:
+            $ref: "#/components/schemas/SearchStage"
+      required:
+        - query
+        - results
+        - sourcesQueried
+        - successfulSources
+        - failedSources
+        - partialResults
+        - warnings
+        - scannedAt
+        - stages
+    ListingVerificationInput:
+      type: object
+      properties:
+        url:
+          type: string
+          format: uri
+        title:
+          type: string
+        company:
+          type: string
+        applicationUrl:
+          type: ["string", "null"]
+          format: uri
+      required: [url, title, company]
+    ListingVerificationResult:
+      type: object
+      properties:
+        listingStatus:
+          type: string
+          enum: [verified, verification-needed, possibly-expired, closed, conflicting]
+        applicationUrlReachable:
+          type: ["boolean", "null"]
+        checkedAt:
+          type: string
+          format: date-time
+        confidence:
+          type: number
+          minimum: 0
+          maximum: 1
+        explanation:
+          type: string
+        evidence:
+          type: string
+      required:
+        - listingStatus
+        - applicationUrlReachable
+        - checkedAt
+        - confidence
+        - explanation
+        - evidence
+
