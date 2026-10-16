@@ -328,3 +328,165 @@ export interface ListingVerificationResult {
   evidence: string;
 }
 
+export type AiGenerationStatusProvider = typeof AiGenerationStatusProvider[keyof typeof AiGenerationStatusProvider];
+
+
+export const AiGenerationStatusProvider = {
+  'google-gemini': 'google-gemini',
+} as const;
+
+export interface AiGenerationStatus {
+  provider: AiGenerationStatusProvider;
+  configured: boolean;
+  message: string;
+}
+
+export type GmailStatusProvider = typeof GmailStatusProvider[keyof typeof GmailStatusProvider];
+
+
+export const GmailStatusProvider = {
+  gmail: 'gmail',
+} as const;
+
+export interface GmailStatus {
+  provider: GmailStatusProvider;
+  configured: boolean;
+  connected: boolean;
+  message: string;
+}
+
+export interface CareerProfileProject {
+  title: string;
+  description: string;
+  technologies: string;
+  contribution: string;
+  link: string;
+}
+
+export interface CareerProfileExperience {
+  role: string;
+  company: string;
+  dates: string;
+  description: string;
+}
+
+export interface CareerPilotProfile {
+  fullName: string;
+  email: string;
+  phone: string;
+  location: string;
+  headline: string;
+  summary: string;
+  degree: string;
+  branch: string;
+  institution: string;
+  graduationYear: string;
+  skills: string[];
+  projects: CareerProfileProject[];
+  experience: CareerProfileExperience[];
+  certifications: string[];
+  workAuthorization: string;
+  github: string;
+  linkedin: string;
+  portfolio: string;
+}
+
+export interface CareerMaterialJob {
+  title: string;
+  company: string;
+  /** @nullable */
+  location?: string | null;
+  /** @nullable */
+  description?: string | null;
+  requiredSkills: string[];
+  preferredSkills: string[];
+  /** @nullable */
+  educationRequirements?: string | null;
+  /** @nullable */
+  graduationYearRequirements?: string | null;
+}
+
+export type GenerateCareerMaterialRequestKind = typeof GenerateCareerMaterialRequestKind[keyof typeof GenerateCareerMaterialRequestKind];
+
+
+export const GenerateCareerMaterialRequestKind = {
+  resume: 'resume',
+  'application-email': 'application-email',
+  outreach: 'outreach',
+} as const;
+
+export interface GenerateCareerMaterialRequest {
+  kind: GenerateCareerMaterialRequestKind;
+  profile: CareerPilotProfile;
+  job: CareerMaterialJob;
+  consentToSendProfileToGemini: true;
+}
+
+export interface GeneratedCareerMaterial {
+  text: string;
+  model: string;
+}
+
+export interface SendCareerPilotEmailRequest {
+  to: string;
+  /** @maxLength 998 */
+  subject: string;
+  /** @maxLength 50000 */
+  text: string;
+  confirmSend: true;
+}
+
+export interface ApplicationAssistProfile {
+  fullName: string;
+  email: string;
+  phone: string;
+  location: string;
+  headline?: string;
+  summary?: string;
+  degree?: string;
+  branch?: string;
+  institution?: string;
+  graduationYear?: string;
+  skills: string[];
+  github?: string;
+  linkedin?: string;
+  portfolio?: string;
+  projects: CareerProfileProject[];
+  experience: CareerProfileExperience[];
+}
+
+export interface ApplicationAssistRequest {
+  url: string;
+  title: string;
+  company: string;
+  profile: ApplicationAssistProfile;
+  confirmPersonalDataTransfer: true;
+}
+
+export type ApplicationAssistResultSubmissionStatus = typeof ApplicationAssistResultSubmissionStatus[keyof typeof ApplicationAssistResultSubmissionStatus];
+
+
+export const ApplicationAssistResultSubmissionStatus = {
+  not_submitted: 'not_submitted',
+} as const;
+
+export interface ApplicationAssistResult {
+  fieldsFilled: string[];
+  fieldsSkipped: string[];
+  submissionStatus: ApplicationAssistResultSubmissionStatus;
+}
+
+export type StartCareerPilotGmailOAuth200 = {
+  authorizationUrl: string;
+};
+
+export type CompleteCareerPilotGmailOAuthParams = {
+code?: string;
+state: string;
+};
+
+export type SendCareerPilotGmailMessage200 = {
+  sent: boolean;
+  messageId: string;
+};
+

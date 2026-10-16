@@ -6,9 +6,19 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from './aiGenerationStatus';
+export * from './aiGenerationStatusProvider';
 export * from './apiError';
+export * from './applicationAssistProfile';
+export * from './applicationAssistRequest';
+export * from './applicationAssistResult';
+export * from './applicationAssistResultSubmissionStatus';
+export * from './careerMaterialJob';
+export * from './careerPilotProfile';
 export * from './careerPilotStatus';
 export * from './careerPilotStatusProvider';
+export * from './careerProfileExperience';
+export * from './careerProfileProject';
 export * from './careerSearchInput';
 export * from './careerSearchInputMinimumCompensationCurrency';
 export * from './careerSearchInputMinimumCompensationPeriod';
@@ -16,6 +26,12 @@ export * from './careerSearchInputOpportunityType';
 export * from './careerSearchInputVisaSponsorship';
 export * from './careerSearchInputWorkArrangement';
 export * from './careerSearchResult';
+export * from './completeCareerPilotGmailOAuthParams';
+export * from './generateCareerMaterialRequest';
+export * from './generateCareerMaterialRequestKind';
+export * from './generatedCareerMaterial';
+export * from './gmailStatus';
+export * from './gmailStatusProvider';
 export * from './healthStatus';
 export * from './jobListing';
 export * from './jobListingEmploymentType';
@@ -30,3 +46,6 @@ export * from './matchFactor';
 export * from './matchFactorStatus';
 export * from './searchStage';
 export * from './searchStageName';
+export * from './sendCareerPilotEmailRequest';
+export * from './sendCareerPilotGmailMessage200';
+export * from './startCareerPilotGmailOAuth200';

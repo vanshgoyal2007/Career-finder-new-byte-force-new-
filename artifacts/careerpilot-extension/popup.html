@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>CareerPilot Job Companion</title>
+    <link rel="stylesheet" href="popup.css">
+  </head>
+  <body>
+    <main>
+      <h1>CareerPilot</h1>
+      <p id="page-info" class="muted">Reading current tab…</p>
+      <label>
+        Job title
+        <input id="title" autocomplete="off">
+      </label>
+      <label>
+        Company
+        <input id="company" autocomplete="organization" placeholder="Enter and verify the company">
+      </label>
+      <label>
+        Location (optional)
+        <input id="location" autocomplete="off">
+      </label>
+      <label>
+        Job description (optional, review before capture)
+        <textarea id="description" rows="5"></textarea>
+      </label>
+      <button id="capture" class="primary" type="button" disabled>Capture in CareerPilot</button>
+      <hr>
+      <p id="profile-status" class="muted">Checking for a saved Master Profile…</p>
+      <label>
+        Saved job-specific resume
+        <select id="resume-version">
+          <option value="">Choose a saved resume</option>
+        </select>
+      </label>
+      <button id="open-resume" type="button" disabled>Open selected resume in CareerPilot</button>
+      <p class="scope">From CareerPilot, use Print / Save as PDF and attach that reviewed file yourself if the employer requests a resume upload.</p>
+      <p id="fill-scope" class="scope">
+        Review proposed values before filling. Autofill touches only blank text, email, phone, and URL fields that clearly match profile facts. It never selects checkboxes or dropdowns, answers legal/eligibility questions, uploads files, or submits the form.
+      </p>
+      <label class="consent">
+        <input id="consent" type="checkbox">
+        I reviewed this employer page and consent to inspecting blank fields against my local profile. The site may save fields as they change.
+      </label>
+      <button id="review-fields" type="button" disabled>Review suggested fields</button>
+      <section id="field-review" hidden aria-label="Review proposed form fields">
+        <h2>Review before filling</h2>
+        <p class="scope">Only checked, clearly matched blank fields will be filled. Nothing is submitted.</p>
+        <div id="field-proposals"></div>
+        <button id="fill" class="primary" type="button" disabled>Fill approved fields</button>
+      </section>
+      <p id="status" role="status" aria-live="polite"></p>
+      <script src="popup.js"></script>
+    </main>
+  </body>
+</html>
