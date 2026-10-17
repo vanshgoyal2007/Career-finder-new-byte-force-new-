@@ -90,8 +90,8 @@ async function initialize() {
       [profile.fullName, profile.email, profile.phone, profile.location]
         .some((value) => typeof value === "string" && value.trim());
     profileStatus.textContent = hasFacts
-      ? "Master Profile found in Vayora on this device."
-      : "No useful Master Profile found. Open Vayora, save your profile, and try again.";
+      ? "Master Profile found in Velmora on this device."
+      : "No useful Master Profile found. Open Velmora, save your profile, and try again.";
     reviewButton.disabled = !hasFacts || !consentInput.checked || activePageIsCareerPilot || !url || url.protocol !== "https:";
     const knownJobs = [
       ...(Array.isArray(localData?.saved) ? localData.saved : []),
@@ -133,7 +133,7 @@ openResumeButton.addEventListener("click", async () => {
   const url = new URL("http://localhost:4173/career-studio");
   url.searchParams.set("resumeVersion", resumeSelect.value);
   await chrome.tabs.create({ url: url.toString() });
-  status.textContent = "Opened the selected job-specific resume in Vayora.";
+  status.textContent = "Opened the selected job-specific resume in Velmora.";
 });
 
 captureButton.addEventListener("click", async () => {
@@ -151,7 +151,7 @@ captureButton.addEventListener("click", async () => {
   const target = new URL("http://localhost:4173/career-studio");
   target.searchParams.set("capture", JSON.stringify(capture));
   await chrome.tabs.create({ url: target.toString() });
-  status.textContent = "Job capture opened in Vayora.";
+  status.textContent = "Job capture opened in Velmora.";
 });
 
 consentInput.addEventListener("change", () => {

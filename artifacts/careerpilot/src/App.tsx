@@ -93,7 +93,7 @@ function capturedJobListing(job: CareerStudioJob): JobListing {
     lastCheckedAt: new Date().toISOString(),
     listingStatus: 'verification-needed',
     verificationConfidence: 0,
-    verificationNote: 'Captured from a browser page; Vayora has not verified the source.',
+    verificationNote: 'Captured from a browser page; Velmora has not verified the source.',
     matchScore: 0,
     matchExplanation: 'No match score has been calculated for this captured page.',
     matchBreakdown: [],
@@ -528,7 +528,7 @@ function AppShell() {
   });
 
   const sidebar = <aside className="cp-sidebar">
-    <Link href="/" className="cp-brand" data-testid="link-brand"><span className="cp-logo"><NavigationLogo /></span><span>Vayora</span></Link>
+    <Link href="/" className="cp-brand" data-testid="link-brand"><span className="cp-logo"><NavigationLogo /></span><span>Velmora</span></Link>
     <div className="cp-nav-label">Workspace</div>
     <nav className="cp-nav" aria-label="Main navigation">
       <Link href="/" className={path === '/' ? 'active' : ''} data-testid="link-discover"><Search size={16}/>Discover jobs</Link>
@@ -546,7 +546,7 @@ function AppShell() {
   </aside>;
 
   return <div className="cp-shell">{sidebar}<main className="cp-main">
-    <header className="cp-topbar"><div className="cp-crumb"><span>Vayora</span><ArrowRight size={12}/><strong>{currentPage}</strong></div><div className="cp-live"><span className="cp-live-dot"/>{status.isLoading ? 'Checking search availability' : status.isError ? 'Search status unavailable' : status.data?.configured ? 'Live search ready' : 'Search provider not configured'}</div></header>
+    <header className="cp-topbar"><div className="cp-crumb"><span>Velmora</span><ArrowRight size={12}/><strong>{currentPage}</strong></div><div className="cp-live"><span className="cp-live-dot"/>{status.isLoading ? 'Checking search availability' : status.isError ? 'Search status unavailable' : status.data?.configured ? 'Live search ready' : 'Search provider not configured'}</div></header>
     <div className="cp-content"><RoutedErrorBoundary><Switch>
       <Route path="/">
         <Discover query={query} setQuery={setQuery} role={role} setRole={setRole} location={location} setLocation={setSearchLocation} opportunityType={opportunityType} setOpportunityType={setOpportunityType} onSearch={submitSearch} onRefresh={runSearch} search={search} searchData={searchData} newSincePreviousScan={newSincePreviousScan} status={status} saved={saved} toggleSaved={toggleSaved} openJob={setSelected} addToTracker={addToTracker} verification={verification} verifyJob={verifyJob} verifyPending={verify.isPending} filtersOpen={searchFiltersOpen} setFiltersOpen={setSearchFiltersOpen} profile={profile} />
@@ -748,7 +748,7 @@ function Discover(props: {
   </>;
 }
 
-function SearchLoading() { return <><div className="cp-alert success"><LoaderCircle size={15} className="spin"/><span>Live search is running. Vayora is searching source pages, reading listings, checking links, removing duplicates, and calculating matches.</span></div><div className="cp-results-layout"><div className="cp-job-list"><div className="cp-skeleton"/><div className="cp-skeleton"/><div className="cp-skeleton"/></div><aside className="cp-card cp-side-card"><div className="cp-side-title">What the scan checks</div><p className="cp-scan-note">Completed steps and source counts appear after TinyFish returns the actual search and page-fetch results.</p></aside></div></>; }
+function SearchLoading() { return <><div className="cp-alert success"><LoaderCircle size={15} className="spin"/><span>Live search is running. Velmora is searching source pages, reading listings, checking links, removing duplicates, and calculating matches.</span></div><div className="cp-results-layout"><div className="cp-job-list"><div className="cp-skeleton"/><div className="cp-skeleton"/><div className="cp-skeleton"/></div><aside className="cp-card cp-side-card"><div className="cp-side-title">What the scan checks</div><p className="cp-scan-note">Completed steps and source counts appear after TinyFish returns the actual search and page-fetch results.</p></aside></div></>; }
 
 function JobCard({job,saved,onSave,onOpen,onTrack}:{job:JobListing;saved:boolean;onSave:()=>void;onOpen:()=>void;onTrack:()=>void}) {
   const statusClass = job.listingStatus === 'verified' ? 'green' : job.listingStatus === 'closed' || job.listingStatus === 'possibly-expired' ? 'amber' : '';
@@ -807,7 +807,71 @@ function PageHeading({eyebrow,title,subtitle}:{eyebrow:string;title:string;subti
 
 function Settings({savedCount,trackerCount,clearData}:{savedCount:number;trackerCount:number;clearData:()=>void}) {
   const [confirm,setConfirm]=useState(false);
-  return <><PageHeading eyebrow="Account and privacy" title="Settings" subtitle="Understand what Vayora checks, stores, and leaves in your control."/><section className="cp-card cp-form-card" style={{marginBottom:15}}><h2>Live search and verification</h2><p>Vayora checks real sources for the current search. Results can be incomplete when source pages are unavailable.</p><div className="cp-setting-row"><div><strong>Evidence before confidence</strong><span>Listing status, source details, and eligibility breakdowns reflect available listing evidence. They are guidance, not a promise that an employer will accept an application.</span></div><ShieldCheck size={20} color="#379566"/></div><div className="cp-setting-row"><div><strong>Re-check when you need to</strong><span>Use “Check listing again” in a job detail panel to re-check listing status and application link reachability.</span></div><Activity size={19} color="#687da9"/></div><div className="cp-setting-row"><div><strong>Sources may return partial results</strong><span>Unavailable sources are disclosed in search warnings and source coverage; Vayora does not fill gaps with sample jobs.</span></div><Info size={18} color="#a67b2c"/></div></section><section className="cp-card cp-form-card"><h2>Local browser data</h2><p>Your Vayora profile and application materials are stored in this browser only. They are not account-synced or uploaded to Vayora.</p><div className="cp-setting-row"><div><strong>Saved openings</strong><span>Stored in this browser only. Current count: {savedCount}.</span></div><Bookmark size={18} color="#687da9"/></div><div className="cp-setting-row"><div><strong>Application tracker</strong><span>Stage updates, linked resume/email versions, and outreach records are stored in this browser only. Current count: {trackerCount}.</span></div><LayoutDashboard size={18} color="#687da9"/></div><div className="cp-setting-row"><div><strong>Master Profile and application materials</strong><span>Contact details, projects, resume versions, email drafts, and outreach drafts remain local to this browser. Export or copy them before clearing browser data.</span></div><UserRound size={18} color="#687da9"/></div><div><strong>Search preferences</strong><span>Search criteria and profile fields persist in local browser storage. No cross-device syncing in v1.</span></div><div style={{display:'flex',justifyContent:'flex-end',marginTop:17}}>{confirm?<div style={{display:'flex',gap:8,alignItems:'center'}}><span style={{fontSize:11,color:'#8a5260'}}>Remove all local Vayora data?</span><button className="cp-button danger" onClick={()=>{clearData();setConfirm(false)}} data-testid="button-confirm-clear">Clear local data</button><button className="cp-button secondary" onClick={()=>setConfirm(false)} data-testid="button-cancel-clear">Cancel</button></div>:<button className="cp-button danger" onClick={()=>setConfirm(true)} data-testid="button-clear-data"><Trash2 size={14}/>Clear local data</button>}</div></section></>;
+  return (
+    <>
+      <PageHeading
+        eyebrow="Account and privacy"
+        title="Settings"
+        subtitle="Understand what Velmora checks, stores, and leaves in your control."
+      />
+      <section className="cp-card cp-form-card" style={{marginBottom:15}}>
+        <h2>Live search and verification</h2>
+        <p>Velmora checks real sources for the current search. Results can be incomplete when source pages are unavailable.</p>
+        <div className="cp-setting-row">
+          <div>
+            <strong>Evidence before confidence</strong>
+            <span>Listing status, source details, and eligibility breakdowns reflect available listing evidence. They are guidance, not a promise that an employer will accept an application.</span>
+          </div>
+          <ShieldCheck size={20} color="#379566"/>
+        </div>
+        <div className="cp-setting-row">
+          <div>
+            <strong>Re-check when you need to</strong>
+            <span>Use “Check listing again” in a job detail panel to re-check listing status and application link reachability.</span>
+          </div>
+          <Activity size={19} color="#687da9"/>
+        </div>
+        <div className="cp-setting-row">
+          <div>
+            <strong>Sources may return partial results</strong>
+            <span>Unavailable sources are disclosed in search warnings and source coverage; Velmora does not fill gaps with sample jobs.</span>
+          </div>
+          <Info size={18} color="#a67b2c"/>
+        </div>
+      </section>
+      <section className="cp-card cp-form-card">
+        <h2>Local browser data</h2>
+        <p>Your Velmora profile and application materials are stored in this browser only. They are not account-synced or uploaded to Velmora.</p>
+        <div className="cp-setting-row">
+          <div><strong>Saved openings</strong><span>Stored in this browser only. Current count: {savedCount}.</span></div>
+          <Bookmark size={18} color="#687da9"/>
+        </div>
+        <div className="cp-setting-row">
+          <div><strong>Application tracker</strong><span>Stage updates, linked resume/email versions, and outreach records are stored in this browser only. Current count: {trackerCount}.</span></div>
+          <LayoutDashboard size={18} color="#687da9"/>
+        </div>
+        <div className="cp-setting-row">
+          <div><strong>Master Profile and application materials</strong><span>Contact details, projects, resume versions, email drafts, and outreach drafts remain local to this browser. Export or copy them before clearing browser data.</span></div>
+          <UserRound size={18} color="#687da9"/>
+        </div>
+        <div>
+          <strong>Search preferences</strong>
+          <span>Search criteria and profile fields persist in local browser storage. No cross-device syncing in v1.</span>
+        </div>
+        <div style={{display:'flex',justifyContent:'flex-end',marginTop:17}}>
+          {confirm ? (
+            <div style={{display:'flex',gap:8,alignItems:'center'}}>
+              <span style={{fontSize:11,color:'#8a5260'}}>Remove all local Velmora data?</span>
+              <button className="cp-button danger" onClick={()=>{clearData();setConfirm(false)}} data-testid="button-confirm-clear">Clear local data</button>
+              <button className="cp-button secondary" onClick={()=>setConfirm(false)} data-testid="button-cancel-clear">Cancel</button>
+            </div>
+          ) : (
+            <button className="cp-button danger" onClick={()=>setConfirm(true)} data-testid="button-clear-data"><Trash2 size={14}/>Clear local data</button>
+          )}
+        </div>
+      </section>
+    </>
+  );
 }
 
 function JobDetail({job,close,saved,toggleSaved,addToTracker,prepareApplication,verify,verifying,verification}:{job:JobListing;close:()=>void;saved:boolean;toggleSaved:()=>void;addToTracker:()=>void;prepareApplication:()=>void;verify:()=>void;verifying:boolean;verification?:{explanation:string;evidence:string;checkedAt:string;confidence:number;listingStatus:string;applicationUrlReachable:boolean|null}}) {

@@ -1,6 +1,6 @@
-# Vayora — Your next move, made with confidence.
+# Velmora — Your next move, made with confidence.
 
-Vayora by Byte Force is a desktop-first job discovery and career workspace for students and early-career professionals. This TypeScript monorepo combines a React frontend, an Express API, generated API clients, schema validation, and live external job intelligence powered by TinyFish.
+Velmora by Byte Force is a desktop-first job discovery and career workspace for students and early-career professionals. This TypeScript monorepo combines a React frontend, an Express API, generated API clients, schema validation, and live external job intelligence powered by TinyFish.
 
 <p align="center">
   <img src="https://img.shields.io/badge/TypeScript-5.9-3178C6?logo=typescript&logoColor=white" alt="TypeScript 5.9" />
@@ -12,7 +12,7 @@ Vayora by Byte Force is a desktop-first job discovery and career workspace for s
 
 ## Overview
 
-Vayora helps users:
+Velmora helps users:
 
 - discover jobs and internships from live sources
 - compare opportunities against their profile and preferences
@@ -22,7 +22,7 @@ Vayora helps users:
 
 The app is designed to be factual and source-aware, instead of fabricating positions or scores. It keeps user data local in the browser by default and uses a server-side TinyFish API key for live enrichment.
 
-The Career Studio adds a browser-local Master Profile, evidence-based job comparison, editable job-specific resume drafts with print/PDF export, application and outreach email drafts, and links to existing tracker records. Optional Gemini generation, Gmail sending, and consent-gated TinyFish form assistance are available when their server-side credentials are configured. All drafts remain editable; Vayora never submits an application.
+The Career Studio adds a browser-local Master Profile, evidence-based job comparison, editable job-specific resume drafts with print/PDF export, application and outreach email drafts, and links to existing tracker records. Optional Gemini generation, Gmail sending, and consent-gated TinyFish form assistance are available when their server-side credentials are configured. All drafts remain editable; Velmora never submits an application.
 
 ---
 
@@ -30,7 +30,7 @@ The Career Studio adds a browser-local Master Profile, evidence-based job compar
 
 ```mermaid
 flowchart LR
-    User[User / Candidate] --> FE[Vayora UI\nReact + Vite]
+    User[User / Candidate] --> FE[Velmora UI\nReact + Vite]
     FE --> API[Express API\nartifacts/api-server]
     API --> TF[TinyFish\nSearch + Fetch + Agent]
     API --> DB[(PostgreSQL + Drizzle)]
@@ -159,7 +159,7 @@ This makes the app resilient and keeps the search layer grounded in current live
 ```mermaid
 sequenceDiagram
     participant User as Candidate
-    participant FE as Vayora UI
+    participant FE as Velmora UI
     participant API as API Server
     participant TF as TinyFish
 
@@ -251,13 +251,13 @@ DATABASE_URL=postgresql://...  # optional for DB-backed work
 
 ### Chrome Job Companion
 
-The Manifest V3 extension source is in `artifacts/careerpilot-extension/`. In Chrome, open `chrome://extensions`, enable Developer mode, choose **Load unpacked**, and select that directory. Keep Vayora running at `http://localhost:4173` and open a tab with the saved Master Profile. The companion suggests a visible page heading and description for capture; confirm the title and company before opening the job in Career Studio. Job-description text is used to compare the listing with verified Master Profile skills.
+The Manifest V3 extension source is in `artifacts/careerpilot-extension/`. In Chrome, open `chrome://extensions`, enable Developer mode, choose **Load unpacked**, and select that directory. Keep Velmora running at `http://localhost:4173` and open a tab with the saved Master Profile. The companion suggests a visible page heading and description for capture; confirm the title and company before opening the job in Career Studio. Job-description text is used to compare the listing with verified Master Profile skills.
 
 For application forms, explicitly consent to local inspection, review the suggested field/value pairs, select only the entries you approve, and then fill those blank text fields. A second check ensures a field is still blank and still matches its reviewed label. The companion never answers legal/eligibility questions, selects checkboxes or menus, uploads a file, or submits the form. Sites may autosave field changes; review the employer page before continuing. A job-specific saved resume can be opened in Career Studio from the extension; use **Print / Save as PDF** there and attach the reviewed file yourself if the employer requests an upload. Chrome does not allow this extension to populate a site's file picker.
 
 Master Profile accepts selectable-text PDFs up to 10 MB and 20 pages. Text extraction and suggestions run in the browser; scanned PDFs without a text layer require manual entry/OCR elsewhere. Review suggestions, apply them only to empty fields, edit the profile, and explicitly save. The uploaded source PDF is not retained.
 
-Career Studio stores cover-letter drafts per job. Recruiter, hiring-manager, and referral outreach templates use the selected job and saved facts; verify contact details yourself, save drafts, and optionally schedule follow-up dates. Follow-ups appear on the corresponding application-tracker record when the outreach draft is linked. Vayora does not invent a contact or claim a message was sent unless Gmail confirms the send or you mark a contact as made.
+Career Studio stores cover-letter drafts per job. Recruiter, hiring-manager, and referral outreach templates use the selected job and saved facts; verify contact details yourself, save drafts, and optionally schedule follow-up dates. Follow-ups appear on the corresponding application-tracker record when the outreach draft is linked. Velmora does not invent a contact or claim a message was sent unless Gmail confirms the send or you mark a contact as made.
 
 TinyFish application assistance uses a separate remote TinyFish Agent browser and may consume paid Agent credits. It starts only after consent, is rate-limited, and is instructed not to submit, upload documents, or answer legal/eligibility questions. A remote run does not automatically fill the page open in local Chrome. Use the local companion for per-field review, and submit manually on the employer site only after checking all answers. If a site requires authentication, CAPTCHA, file upload, or another unsupported control, use the employer URL and prepared Career Studio materials as the manual fallback.
 
@@ -281,4 +281,4 @@ The codebase emphasizes:
 
 ## Status
 
-Vayora is the career discovery and application workspace built by Byte Force. The project is structured as a monorepo for a real-world hiring-assistant experience with a live data layer, generated contracts, and a polished UI. It is well-suited for continued expansion into richer analytics, saved account sync, job alerts, or deeper recruiter workflows.
+Velmora is the career discovery and application workspace built by Byte Force. The project is structured as a monorepo for a real-world hiring-assistant experience with a live data layer, generated contracts, and a polished UI. It is well-suited for continued expansion into richer analytics, saved account sync, job alerts, or deeper recruiter workflows.
