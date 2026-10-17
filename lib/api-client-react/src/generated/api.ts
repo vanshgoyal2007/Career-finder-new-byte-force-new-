@@ -20,13 +20,23 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  AiGenerationStatus,
   ApiError,
+  ApplicationAssistRequest,
+  ApplicationAssistResult,
   CareerPilotStatus,
   CareerSearchInput,
   CareerSearchResult,
+  CompleteCareerPilotGmailOAuthParams,
+  GenerateCareerMaterialRequest,
+  GeneratedCareerMaterial,
+  GmailStatus,
   HealthStatus,
   ListingVerificationInput,
-  ListingVerificationResult
+  ListingVerificationResult,
+  SendCareerPilotEmailRequest,
+  SendCareerPilotGmailMessage200,
+  StartCareerPilotGmailOAuth200
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -385,5 +395,585 @@ export const useVerifyCareerPilotListing = <TError = ErrorType<ApiError>,
         TContext
       > => {
       return useMutation(getVerifyCareerPilotListingMutationOptions(options));
+    }
+
+export const getGetCareerPilotAiStatusUrl = () => {
+
+
+
+
+  return `/api/careerpilot/ai/status`
+}
+
+/**
+ * @summary Check Gemini draft generation availability
+ */
+export const getCareerPilotAiStatus = async ( options?: Parameters<typeof customFetch>[1]): Promise<AiGenerationStatus> => {
+
+  return customFetch<AiGenerationStatus>(getGetCareerPilotAiStatusUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetCareerPilotAiStatusQueryKey = () => {
+    return [
+    `/api/careerpilot/ai/status`
+    ] as const;
+    }
+
+
+export const getGetCareerPilotAiStatusQueryOptions = <TData = Awaited<ReturnType<typeof getCareerPilotAiStatus>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCareerPilotAiStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetCareerPilotAiStatusQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getCareerPilotAiStatus>>> = ({ signal }) => getCareerPilotAiStatus({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getCareerPilotAiStatus>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetCareerPilotAiStatusQueryResult = NonNullable<Awaited<ReturnType<typeof getCareerPilotAiStatus>>>
+export type GetCareerPilotAiStatusQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Check Gemini draft generation availability
+ */
+
+export function useGetCareerPilotAiStatus<TData = Awaited<ReturnType<typeof getCareerPilotAiStatus>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCareerPilotAiStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetCareerPilotAiStatusQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGenerateCareerPilotMaterialsUrl = () => {
+
+
+
+
+  return `/api/careerpilot/generate-materials`
+}
+
+/**
+ * @summary Generate a factual job-specific draft with Gemini
+ */
+export const generateCareerPilotMaterials = async (generateCareerMaterialRequest: GenerateCareerMaterialRequest, options?: Parameters<typeof customFetch>[1]): Promise<GeneratedCareerMaterial> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<GeneratedCareerMaterial>(getGenerateCareerPilotMaterialsUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(generateCareerMaterialRequest)
+  }
+);}
+
+
+
+
+
+export const getGenerateCareerPilotMaterialsMutationKey = () => ['generateCareerPilotMaterials'] as const;
+
+export const getGenerateCareerPilotMaterialsMutationOptions = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof generateCareerPilotMaterials>>, TError,GenerateCareerPilotMaterialsMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof generateCareerPilotMaterials>>, TError,GenerateCareerPilotMaterialsMutationVariables, TContext> => {
+
+const mutationKey = getGenerateCareerPilotMaterialsMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof generateCareerPilotMaterials>>, GenerateCareerPilotMaterialsMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  generateCareerPilotMaterials(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type GenerateCareerPilotMaterialsMutationResult = NonNullable<Awaited<ReturnType<typeof generateCareerPilotMaterials>>>
+    export type GenerateCareerPilotMaterialsMutationBody = BodyType<GenerateCareerMaterialRequest>
+    export type GenerateCareerPilotMaterialsMutationError = ErrorType<ApiError>
+    export type GenerateCareerPilotMaterialsMutationVariables = {data: BodyType<GenerateCareerMaterialRequest>}
+
+    /**
+ * @summary Generate a factual job-specific draft with Gemini
+ */
+export const useGenerateCareerPilotMaterials = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof generateCareerPilotMaterials>>, TError,GenerateCareerPilotMaterialsMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof generateCareerPilotMaterials>>,
+        TError,
+        GenerateCareerPilotMaterialsMutationVariables,
+        TContext
+      > => {
+      return useMutation(getGenerateCareerPilotMaterialsMutationOptions(options));
+    }
+
+export const getGetCareerPilotGmailStatusUrl = () => {
+
+
+
+
+  return `/api/careerpilot/gmail/status`
+}
+
+/**
+ * @summary Check Gmail OAuth and sending status
+ */
+export const getCareerPilotGmailStatus = async ( options?: Parameters<typeof customFetch>[1]): Promise<GmailStatus> => {
+
+  return customFetch<GmailStatus>(getGetCareerPilotGmailStatusUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetCareerPilotGmailStatusQueryKey = () => {
+    return [
+    `/api/careerpilot/gmail/status`
+    ] as const;
+    }
+
+
+export const getGetCareerPilotGmailStatusQueryOptions = <TData = Awaited<ReturnType<typeof getCareerPilotGmailStatus>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCareerPilotGmailStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetCareerPilotGmailStatusQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getCareerPilotGmailStatus>>> = ({ signal }) => getCareerPilotGmailStatus({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getCareerPilotGmailStatus>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetCareerPilotGmailStatusQueryResult = NonNullable<Awaited<ReturnType<typeof getCareerPilotGmailStatus>>>
+export type GetCareerPilotGmailStatusQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Check Gmail OAuth and sending status
+ */
+
+export function useGetCareerPilotGmailStatus<TData = Awaited<ReturnType<typeof getCareerPilotGmailStatus>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCareerPilotGmailStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetCareerPilotGmailStatusQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getStartCareerPilotGmailOAuthUrl = () => {
+
+
+
+
+  return `/api/careerpilot/gmail/oauth/start`
+}
+
+/**
+ * @summary Start Gmail OAuth authorization
+ */
+export const startCareerPilotGmailOAuth = async ( options?: Parameters<typeof customFetch>[1]): Promise<StartCareerPilotGmailOAuth200> => {
+
+  return customFetch<StartCareerPilotGmailOAuth200>(getStartCareerPilotGmailOAuthUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getStartCareerPilotGmailOAuthQueryKey = () => {
+    return [
+    `/api/careerpilot/gmail/oauth/start`
+    ] as const;
+    }
+
+
+export const getStartCareerPilotGmailOAuthQueryOptions = <TData = Awaited<ReturnType<typeof startCareerPilotGmailOAuth>>, TError = ErrorType<ApiError>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof startCareerPilotGmailOAuth>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getStartCareerPilotGmailOAuthQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof startCareerPilotGmailOAuth>>> = ({ signal }) => startCareerPilotGmailOAuth({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof startCareerPilotGmailOAuth>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type StartCareerPilotGmailOAuthQueryResult = NonNullable<Awaited<ReturnType<typeof startCareerPilotGmailOAuth>>>
+export type StartCareerPilotGmailOAuthQueryError = ErrorType<ApiError>
+
+
+/**
+ * @summary Start Gmail OAuth authorization
+ */
+
+export function useStartCareerPilotGmailOAuth<TData = Awaited<ReturnType<typeof startCareerPilotGmailOAuth>>, TError = ErrorType<ApiError>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof startCareerPilotGmailOAuth>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getStartCareerPilotGmailOAuthQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCompleteCareerPilotGmailOAuthUrl = (params: CompleteCareerPilotGmailOAuthParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/careerpilot/gmail/oauth/callback?${stringifiedParams}` : `/api/careerpilot/gmail/oauth/callback`
+}
+
+/**
+ * @summary Complete the Gmail OAuth redirect
+ */
+export const completeCareerPilotGmailOAuth = async (params: CompleteCareerPilotGmailOAuthParams, options?: Parameters<typeof customFetch>[1]): Promise<unknown> => {
+
+  return customFetch<unknown>(getCompleteCareerPilotGmailOAuthUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getCompleteCareerPilotGmailOAuthQueryKey = (params?: CompleteCareerPilotGmailOAuthParams,) => {
+    return [
+    `/api/careerpilot/gmail/oauth/callback`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getCompleteCareerPilotGmailOAuthQueryOptions = <TData = Awaited<ReturnType<typeof completeCareerPilotGmailOAuth>>, TError = ErrorType<void>>(params: CompleteCareerPilotGmailOAuthParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof completeCareerPilotGmailOAuth>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getCompleteCareerPilotGmailOAuthQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof completeCareerPilotGmailOAuth>>> = ({ signal }) => completeCareerPilotGmailOAuth(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof completeCareerPilotGmailOAuth>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type CompleteCareerPilotGmailOAuthQueryResult = NonNullable<Awaited<ReturnType<typeof completeCareerPilotGmailOAuth>>>
+export type CompleteCareerPilotGmailOAuthQueryError = ErrorType<void>
+
+
+/**
+ * @summary Complete the Gmail OAuth redirect
+ */
+
+export function useCompleteCareerPilotGmailOAuth<TData = Awaited<ReturnType<typeof completeCareerPilotGmailOAuth>>, TError = ErrorType<void>>(
+ params: CompleteCareerPilotGmailOAuthParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof completeCareerPilotGmailOAuth>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getCompleteCareerPilotGmailOAuthQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getSendCareerPilotGmailMessageUrl = () => {
+
+
+
+
+  return `/api/careerpilot/gmail/send`
+}
+
+/**
+ * @summary Send a reviewed plain-text email with connected Gmail
+ */
+export const sendCareerPilotGmailMessage = async (sendCareerPilotEmailRequest: SendCareerPilotEmailRequest, options?: Parameters<typeof customFetch>[1]): Promise<SendCareerPilotGmailMessage200> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<SendCareerPilotGmailMessage200>(getSendCareerPilotGmailMessageUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(sendCareerPilotEmailRequest)
+  }
+);}
+
+
+
+
+
+export const getSendCareerPilotGmailMessageMutationKey = () => ['sendCareerPilotGmailMessage'] as const;
+
+export const getSendCareerPilotGmailMessageMutationOptions = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof sendCareerPilotGmailMessage>>, TError,SendCareerPilotGmailMessageMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof sendCareerPilotGmailMessage>>, TError,SendCareerPilotGmailMessageMutationVariables, TContext> => {
+
+const mutationKey = getSendCareerPilotGmailMessageMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof sendCareerPilotGmailMessage>>, SendCareerPilotGmailMessageMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  sendCareerPilotGmailMessage(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SendCareerPilotGmailMessageMutationResult = NonNullable<Awaited<ReturnType<typeof sendCareerPilotGmailMessage>>>
+    export type SendCareerPilotGmailMessageMutationBody = BodyType<SendCareerPilotEmailRequest>
+    export type SendCareerPilotGmailMessageMutationError = ErrorType<ApiError>
+    export type SendCareerPilotGmailMessageMutationVariables = {data: BodyType<SendCareerPilotEmailRequest>}
+
+    /**
+ * @summary Send a reviewed plain-text email with connected Gmail
+ */
+export const useSendCareerPilotGmailMessage = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof sendCareerPilotGmailMessage>>, TError,SendCareerPilotGmailMessageMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof sendCareerPilotGmailMessage>>,
+        TError,
+        SendCareerPilotGmailMessageMutationVariables,
+        TContext
+      > => {
+      return useMutation(getSendCareerPilotGmailMessageMutationOptions(options));
+    }
+
+export const getAssistCareerPilotApplicationUrl = () => {
+
+
+
+
+  return `/api/careerpilot/application-assist`
+}
+
+/**
+ * Uses a remote TinyFish Agent and may consume paid credits. It must not submit forms or answer legal or eligibility questions.
+ * @summary Consent-gated TinyFish assistance for factual application fields
+ */
+export const assistCareerPilotApplication = async (applicationAssistRequest: ApplicationAssistRequest, options?: Parameters<typeof customFetch>[1]): Promise<ApplicationAssistResult> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<ApplicationAssistResult>(getAssistCareerPilotApplicationUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(applicationAssistRequest)
+  }
+);}
+
+
+
+
+
+export const getAssistCareerPilotApplicationMutationKey = () => ['assistCareerPilotApplication'] as const;
+
+export const getAssistCareerPilotApplicationMutationOptions = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof assistCareerPilotApplication>>, TError,AssistCareerPilotApplicationMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof assistCareerPilotApplication>>, TError,AssistCareerPilotApplicationMutationVariables, TContext> => {
+
+const mutationKey = getAssistCareerPilotApplicationMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof assistCareerPilotApplication>>, AssistCareerPilotApplicationMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  assistCareerPilotApplication(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AssistCareerPilotApplicationMutationResult = NonNullable<Awaited<ReturnType<typeof assistCareerPilotApplication>>>
+    export type AssistCareerPilotApplicationMutationBody = BodyType<ApplicationAssistRequest>
+    export type AssistCareerPilotApplicationMutationError = ErrorType<ApiError>
+    export type AssistCareerPilotApplicationMutationVariables = {data: BodyType<ApplicationAssistRequest>}
+
+    /**
+ * @summary Consent-gated TinyFish assistance for factual application fields
+ */
+export const useAssistCareerPilotApplication = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof assistCareerPilotApplication>>, TError,AssistCareerPilotApplicationMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof assistCareerPilotApplication>>,
+        TError,
+        AssistCareerPilotApplicationMutationVariables,
+        TContext
+      > => {
+      return useMutation(getAssistCareerPilotApplicationMutationOptions(options));
     }
 

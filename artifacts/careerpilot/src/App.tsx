@@ -6,7 +6,18 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import NotFound from '@/pages/not-found';
 import { Link, Route, Switch, useLocation, Router as WouterRouter } from 'wouter';
 import * as CareerPilotApi from '@workspace/api-client-react';
-import { Activity, AlertCircle, ArrowDownRight, ArrowRight, Bookmark, BriefcaseBusiness, Building2, Check, CheckCircle2, ChevronDown, CircleHelp, Clock3, ExternalLink, Filter, Info, LayoutDashboard, LoaderCircle, MapPin, Search, Settings2, ShieldCheck, SlidersHorizontal, Target, Trash2, Wallet, X } from 'lucide-react';
+import { Activity, AlertCircle, ArrowDownRight, ArrowRight, Bookmark, BriefcaseBusiness, Building2, Check, CheckCircle2, ChevronDown, CircleHelp, Clock3, ExternalLink, FileText, Filter, Info, LayoutDashboard, LoaderCircle, MapPin, Search, Settings2, ShieldCheck, SlidersHorizontal, Target, Trash2, UserRound, Wallet, X } from 'lucide-react';
+import {
+  CareerStudioPage,
+  MasterProfilePage,
+  emptyMasterProfile,
+  type ApplicationEmailDraft,
+  type CareerStudioJob,
+  type CoverLetterDraft,
+  type MasterProfile,
+  type OutreachDraft,
+  type ResumeVersion,
+} from './career-workflow';
 import './careerpilot.css';
 
 const queryClient = new QueryClient();
@@ -28,8 +39,10 @@ type JobListing = {
 };
 type CareerSearchResult = {query:string;results:JobListing[];sourcesQueried:number;successfulSources:number;failedSources:number;partialResults:boolean;warnings:string[];scannedAt:string;stages:{name:string;completed:boolean;detail:string}[]};
 type StatusResponse = {provider:string;configured:boolean;message:string};
+type AiStatusResponse = { provider: string; configured: boolean; message: string };
+type GmailStatusResponse = { provider: string; configured: boolean; connected: boolean; message: string };
 type VerificationResponse = {listingStatus:string;applicationUrlReachable:boolean|null;checkedAt:string;confidence:number;explanation:string;evidence:string};
-type TrackerItem = {job:JobListing;stage:string;updatedAt:string;applicationDate:string|null;notes:string;reminderAt:string|null};
+type TrackerItem = {job:JobListing;stage:string;updatedAt:string;applicationDate:string|null;notes:string;reminderAt:string|null;resumeVersionId?:string;emailDraftId?:string;coverLetterId?:string;jobAnalysis?:string;outreachDraftId?:string;outreachStatus?:string;outreachFollowUpAt?:string|null};
 type ApiHooks = {
   useGetCareerPilotStatus: () => {isLoading:boolean;isError:boolean;data?:StatusResponse};
   useSearchCareerPilotJobs: () => {isPending:boolean;isError:boolean;error:unknown;mutate:(variables:{data:CareerSearchInput},callbacks?:{onSuccess?:(result:CareerSearchResult)=>void;onError?:()=>void})=>void};
@@ -50,6 +63,44 @@ const money = (job: JobListing) => {
 const pretty = (value?: string | null) => value ? value.replaceAll('-', ' ').replace(/\b\w/g, c => c.toUpperCase()) : '';
 const shortDate = (value?: string | null) => value ? new Date(value).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '';
 
+function capturedJobListing(job: CareerStudioJob): JobListing {
+  return {
+    id: job.id,
+    canonicalUrl: job.canonicalUrl,
+    title: job.title,
+    company: job.company,
+    companyUrl: null,
+    applicationUrl: job.applicationUrl ?? job.canonicalUrl,
+    sourceName: job.sourceName,
+    sourceUrl: job.canonicalUrl,
+    description: job.description ?? null,
+    location: job.location ?? null,
+    workArrangement: null,
+    employmentType: 'unknown',
+    experienceLevel: null,
+    requiredSkills: job.requiredSkills,
+    preferredSkills: job.preferredSkills,
+    educationRequirements: job.educationRequirements ?? null,
+    graduationYearRequirements: job.graduationYearRequirements ?? null,
+    salaryMin: null,
+    salaryMax: null,
+    salaryCurrency: null,
+    payPeriod: null,
+    postedAt: null,
+    deadline: null,
+    visaSponsorship: job.visaSponsorship,
+    workAuthorization: job.workAuthorization ?? null,
+    lastCheckedAt: new Date().toISOString(),
+    listingStatus: 'verification-needed',
+    verificationConfidence: 0,
+    verificationNote: 'Captured from a browser page; Vayora has not verified the source.',
+    matchScore: 0,
+    matchExplanation: 'No match score has been calculated for this captured page.',
+    matchBreakdown: [],
+    alternativeSources: [],
+  };
+}
+
 function AppShell() {
   const [path, navigate] = useLocation();
   const [saved, setSaved] = useState<JobListing[]>(() => localRead('careerpilot.saved.v1', []));
@@ -57,6 +108,13 @@ function AppShell() {
   const [profile, setProfile] = useState<CareerSearchInput>(() => localRead('careerpilot.preferences.v1', {
     query: '', role: '', location: '', opportunityType: 'both', experienceLevel: 'Entry level', skills: [], degree: '', branch: '', graduationYear: null, targetCompanies: [], preferredIndustries:[], workAuthorization:'', workArrangement: null, minimumCompensation: null, minimumCompensationCurrency:null, minimumCompensationPeriod:null, visaSponsorship: null,
   }));
+  const [masterProfile, setMasterProfile] = useState<MasterProfile>(() => localRead('careerpilot.masterProfile.v1', emptyMasterProfile));
+  const [resumeVersions, setResumeVersions] = useState<ResumeVersion[]>(() => localRead('careerpilot.resumeVersions.v1', []));
+  const [emailDrafts, setEmailDrafts] = useState<ApplicationEmailDraft[]>(() => localRead('careerpilot.emailDrafts.v1', []));
+  const [coverLetters, setCoverLetters] = useState<CoverLetterDraft[]>(() => localRead('careerpilot.coverLetters.v1', []));
+  const [outreachDrafts, setOutreachDrafts] = useState<OutreachDraft[]>(() => localRead('careerpilot.outreachDrafts.v1', []));
+  const [studioJob, setStudioJob] = useState<CareerStudioJob | null>(() => localRead('careerpilot.studioJob.v1', null));
+  const [resumeToLoadId, setResumeToLoadId] = useState<string | null>(null);
   const [searchData, setSearchData] = useState<CareerSearchResult | null>(null);
   const [newSincePreviousScan, setNewSincePreviousScan] = useState<number | null>(null);
   const [selected, setSelected] = useState<JobListing | null>(null);
@@ -67,15 +125,131 @@ function AppShell() {
   const [opportunityType, setOpportunityType] = useState<CareerSearchInput['opportunityType']>(profile.opportunityType || 'both');
   const [searchFiltersOpen, setSearchFiltersOpen] = useState(false);
   const [verification, setVerification] = useState<Record<string, { explanation: string; evidence: string; checkedAt: string; confidence: number; listingStatus: string; applicationUrlReachable: boolean | null }>>({});
+  const [aiStatus, setAiStatus] = useState<AiStatusResponse | null>(null);
+  const [gmailStatus, setGmailStatus] = useState<GmailStatusResponse | null>(null);
+  const [integrationError, setIntegrationError] = useState('');
   const status = useGetCareerPilotStatus();
   const search = useSearchCareerPilotJobs();
   const verify = useVerifyCareerPilotListing();
-  const currentPage = path === '/saved' ? 'Saved jobs' : path === '/tracker' ? 'Application tracker' : path === '/preferences' ? 'Search preferences' : path === '/settings' ? 'Settings' : 'Discover jobs';
+  const currentPage = path === '/saved' ? 'Saved jobs' : path === '/tracker' ? 'Application tracker' : path === '/preferences' ? 'Search preferences' : path === '/master-profile' ? 'Master Profile' : path === '/career-studio' ? 'Career Studio' : path === '/settings' ? 'Settings' : 'Discover jobs';
 
   useEffect(() => { localStorage.setItem('careerpilot.saved.v1', JSON.stringify(saved)); }, [saved]);
   useEffect(() => { localStorage.setItem('careerpilot.tracker.v1', JSON.stringify(tracker)); }, [tracker]);
   useEffect(() => { localStorage.setItem('careerpilot.preferences.v1', JSON.stringify(profile)); }, [profile]);
+  useEffect(() => { localStorage.setItem('careerpilot.masterProfile.v1', JSON.stringify(masterProfile)); }, [masterProfile]);
+  useEffect(() => { localStorage.setItem('careerpilot.resumeVersions.v1', JSON.stringify(resumeVersions)); }, [resumeVersions]);
+  useEffect(() => { localStorage.setItem('careerpilot.emailDrafts.v1', JSON.stringify(emailDrafts)); }, [emailDrafts]);
+  useEffect(() => { localStorage.setItem('careerpilot.coverLetters.v1', JSON.stringify(coverLetters)); }, [coverLetters]);
+  useEffect(() => { localStorage.setItem('careerpilot.outreachDrafts.v1', JSON.stringify(outreachDrafts)); }, [outreachDrafts]);
+  useEffect(() => {
+    if (studioJob) localStorage.setItem('careerpilot.studioJob.v1', JSON.stringify(studioJob));
+    else localStorage.removeItem('careerpilot.studioJob.v1');
+  }, [studioJob]);
   useEffect(() => { if (!toast) return; const timer = window.setTimeout(() => setToast(''), 2600); return () => window.clearTimeout(timer); }, [toast]);
+  useEffect(() => {
+    const controller = new AbortController();
+    const loadStatuses = async () => {
+      try {
+        const [aiResponse, gmailResponse] = await Promise.all([
+          fetch('/api/careerpilot/ai/status', { signal: controller.signal }),
+          fetch('/api/careerpilot/gmail/status', { signal: controller.signal }),
+        ]);
+        if (!aiResponse.ok || !gmailResponse.ok) {
+          throw new Error('Could not check AI and Gmail configuration.');
+        }
+        const [aiData, gmailData] = await Promise.all([
+          aiResponse.json() as Promise<AiStatusResponse>,
+          gmailResponse.json() as Promise<GmailStatusResponse>,
+        ]);
+        setAiStatus(aiData);
+        setGmailStatus(gmailData);
+      } catch (error) {
+        if (!controller.signal.aborted) {
+          setIntegrationError(error instanceof Error ? error.message : 'Could not check integration status.');
+        }
+      }
+    };
+    void loadStatuses();
+    return () => controller.abort();
+  }, []);
+  useEffect(() => {
+    const gmailResult = new URLSearchParams(window.location.search).get('gmail');
+    if (!gmailResult) return;
+    setToast(gmailResult === 'connected' ? 'Gmail connected for this server session' : 'Gmail connection was not completed');
+    window.history.replaceState(null, '', window.location.pathname);
+  }, []);
+  useEffect(() => {
+    const capture = new URLSearchParams(window.location.search).get('capture');
+    if (!capture) return;
+    try {
+      const data: unknown = JSON.parse(capture);
+      if (!data || typeof data !== 'object') throw new Error('Invalid capture.');
+      const record = data as Record<string, unknown>;
+      const url = typeof record.url === 'string' ? new URL(record.url) : null;
+      const title = typeof record.title === 'string' ? record.title.trim().slice(0, 300) : '';
+      const company = typeof record.company === 'string' ? record.company.trim().slice(0, 200) : '';
+      const location = typeof record.location === 'string' ? record.location.trim().slice(0, 200) : '';
+      const description = typeof record.description === 'string' ? record.description.trim().slice(0, 4000) : '';
+      if (!url || url.protocol !== 'https:' || !title || !company) {
+        throw new Error('Capture must include a public HTTPS job URL, title, and company.');
+      }
+      setStudioJob({
+        id: `capture-${globalThis.crypto.randomUUID()}`,
+        canonicalUrl: url.toString(),
+        title,
+        company,
+        applicationUrl: url.toString(),
+        sourceName: 'Chrome companion',
+        description: description || null,
+        location: location || null,
+        requiredSkills: [],
+        preferredSkills: [],
+        visaSponsorship: 'not-specified',
+      });
+      navigate('/career-studio');
+      setToast('Captured job opening from the Chrome companion');
+    } catch (error) {
+      setToast(error instanceof Error ? error.message : 'Could not import this job capture.');
+    } finally {
+      window.history.replaceState(null, '', window.location.pathname);
+    }
+  }, [navigate]);
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const resumeId = params.get('resumeVersion');
+    if (!resumeId) return;
+    const version = resumeVersions.find((item) => item.id === resumeId);
+    const job = [
+      ...(searchData?.results ?? []),
+      ...saved,
+      ...tracker.map((item) => item.job),
+      ...(studioJob ? [studioJob] : []),
+    ].find((item) => item.id === version?.jobId);
+    if (!version || !job) {
+      setToast("Save or track the job linked to this resume before opening it from the companion.");
+    } else {
+      setStudioJob({
+        id: job.id,
+        canonicalUrl: job.canonicalUrl,
+        title: job.title,
+        company: job.company,
+        applicationUrl: job.applicationUrl,
+        sourceName: job.sourceName,
+        description: job.description,
+        location: job.location,
+        requiredSkills: job.requiredSkills,
+        preferredSkills: job.preferredSkills,
+        educationRequirements: job.educationRequirements,
+        graduationYearRequirements: job.graduationYearRequirements,
+        workAuthorization: job.workAuthorization,
+        visaSponsorship: job.visaSponsorship,
+      });
+      setResumeToLoadId(version.id);
+      navigate("/career-studio");
+      setToast("Opened the saved job-specific resume for review.");
+    }
+    window.history.replaceState(null, "", window.location.pathname);
+  }, [navigate, resumeVersions, searchData, saved, tracker, studioJob]);
 
   const toggleSaved = (job: JobListing) => {
     const exists = saved.some(item => item.id === job.id);
@@ -86,6 +260,233 @@ function AppShell() {
     if (tracker.some(item => item.job.id === job.id)) { navigate('/tracker'); setToast('Already in your tracker'); return; }
     setTracker(prev => [{ job, stage: 'Interested', updatedAt: new Date().toISOString(), applicationDate: null, notes: '', reminderAt: null }, ...prev]);
     setToast('Added to your application tracker');
+  };
+  const openCareerStudio = (job: CareerStudioJob) => {
+    setStudioJob(job);
+    setSelected(null);
+    navigate('/career-studio');
+  };
+  const saveMasterProfile = (nextProfile: MasterProfile) => {
+    setMasterProfile(nextProfile);
+    setProfile(current => ({
+      ...current,
+      skills: nextProfile.skills,
+      degree: nextProfile.degree || null,
+      branch: nextProfile.branch || null,
+      graduationYear: nextProfile.graduationYear ? Number(nextProfile.graduationYear) : null,
+      workAuthorization: nextProfile.workAuthorization || null,
+      location: nextProfile.location || null,
+    }));
+    setToast('Master Profile saved and applied to matching');
+  };
+  const linkApplicationArtifacts = (job: CareerStudioJob, resumeVersionId: string, emailDraftId: string, jobAnalysis: string, coverLetterId?: string) => {
+    const fullJob = [
+      ...(searchData?.results ?? []),
+      ...saved,
+      ...tracker.map(item => item.job),
+      ...(selected ? [selected] : []),
+      ...(studioJob ? [capturedJobListing(studioJob)] : []),
+    ].find(item => item.id === job.id);
+    if (!fullJob) {
+      setToast('Could not find this listing in saved application data');
+      return;
+    }
+    setTracker(current => {
+      const existing = current.find(item => item.job.id === job.id);
+      if (existing) {
+        return current.map(item => item.job.id === job.id
+          ? { ...item, resumeVersionId, emailDraftId, coverLetterId, jobAnalysis, updatedAt: new Date().toISOString() }
+          : item);
+      }
+      return [{
+        job: fullJob,
+        stage: 'Preparing',
+        updatedAt: new Date().toISOString(),
+        applicationDate: null,
+        notes: '',
+        reminderAt: null,
+        resumeVersionId,
+        emailDraftId,
+        coverLetterId,
+        jobAnalysis,
+      }, ...current];
+    });
+    setToast('Resume and email draft linked in your tracker');
+  };
+  const linkOutreachDraft = (job: CareerStudioJob, outreachDraftId: string, savedDraft?: OutreachDraft) => {
+    const fullJob = [
+      ...(searchData?.results ?? []),
+      ...saved,
+      ...tracker.map(item => item.job),
+      ...(selected ? [selected] : []),
+      ...(studioJob ? [capturedJobListing(studioJob)] : []),
+    ].find(item => item.id === job.id);
+    const draft = savedDraft ?? outreachDrafts.find(item => item.id === outreachDraftId);
+    if (!fullJob || !draft) {
+      setToast('Could not find the job or saved outreach draft');
+      return;
+    }
+    setTracker(current => {
+      const existing = current.find(item => item.job.id === job.id);
+      if (existing) {
+        return current.map(item => item.job.id === job.id
+          ? { ...item, outreachDraftId, outreachStatus: draft.status, outreachFollowUpAt: draft.followUpAt ?? null, updatedAt: new Date().toISOString() }
+          : item);
+      }
+      return [{
+        job: fullJob,
+        stage: 'Interested',
+        updatedAt: new Date().toISOString(),
+        applicationDate: null,
+        notes: '',
+        reminderAt: null,
+        outreachDraftId,
+        outreachStatus: draft.status,
+        outreachFollowUpAt: draft.followUpAt ?? null,
+      }, ...current];
+    });
+    setToast('Outreach record linked in your tracker');
+  };
+  const clearBrowserData = () => {
+    for (const key of [
+      'careerpilot.saved.v1',
+      'careerpilot.tracker.v1',
+      'careerpilot.preferences.v1',
+      'careerpilot.masterProfile.v1',
+      'careerpilot.resumeVersions.v1',
+      'careerpilot.emailDrafts.v1',
+      'careerpilot.coverLetters.v1',
+      'careerpilot.outreachDrafts.v1',
+      'careerpilot.studioJob.v1',
+      'careerpilot.lastSearchIds.v1',
+    ]) {
+      localStorage.removeItem(key);
+    }
+    setSaved([]);
+    setTracker([]);
+    setProfile({ query:'',role:'',location:'',opportunityType:'both',skills:[],preferredIndustries:[],workAuthorization:'',targetCompanies:[],workArrangement:null,minimumCompensation:null,minimumCompensationCurrency:null,minimumCompensationPeriod:null,visaSponsorship:null });
+    setMasterProfile(emptyMasterProfile);
+    setResumeVersions([]);
+    setEmailDrafts([]);
+    setCoverLetters([]);
+    setOutreachDrafts([]);
+    setStudioJob(null);
+    setNewSincePreviousScan(null);
+    setToast('Browser data cleared');
+  };
+  const generateMaterial = async (
+    kind: 'resume' | 'application-email' | 'outreach',
+    job: CareerStudioJob,
+    profileData: MasterProfile,
+  ) => {
+    const response = await fetch('/api/careerpilot/generate-materials', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        kind,
+        job,
+        profile: profileData,
+        consentToSendProfileToGemini: true,
+      }),
+    });
+    const body: unknown = await response.json();
+    if (!response.ok) {
+      const message = body && typeof body === 'object' && 'error' in body && typeof body.error === 'string'
+        ? body.error
+        : 'AI generation failed. Review the provider status and retry.';
+      throw new Error(message);
+    }
+    if (!body || typeof body !== 'object' || !('text' in body) || typeof body.text !== 'string') {
+      throw new Error('Gemini returned an invalid draft response.');
+    }
+    return body.text;
+  };
+  const connectGmail = async () => {
+    const response = await fetch('/api/careerpilot/gmail/oauth/start');
+    const body: unknown = await response.json();
+    if (!response.ok || !body || typeof body !== 'object' || !('authorizationUrl' in body) || typeof body.authorizationUrl !== 'string') {
+      const message = body && typeof body === 'object' && 'error' in body && typeof body.error === 'string'
+        ? body.error
+        : 'Could not start Gmail authorization.';
+      throw new Error(message);
+    }
+    window.location.assign(body.authorizationUrl);
+  };
+  const sendGmailEmail = async (to: string, subject: string, text: string) => {
+    const response = await fetch('/api/careerpilot/gmail/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ to, subject, text, confirmSend: true }),
+    });
+    const body: unknown = await response.json();
+    if (!response.ok) {
+      const message = body && typeof body === 'object' && 'error' in body && typeof body.error === 'string'
+        ? body.error
+        : 'Gmail did not confirm the message was sent.';
+      throw new Error(message);
+    }
+    if (!body || typeof body !== 'object' || !('messageId' in body) || typeof body.messageId !== 'string') {
+      throw new Error('Gmail returned no message confirmation.');
+    }
+    return body.messageId;
+  };
+  const assistApplication = async (
+    job: CareerStudioJob,
+    profileData: MasterProfile,
+  ) => {
+    const applicationProfile = {
+      fullName: profileData.fullName,
+      email: profileData.email,
+      phone: profileData.phone,
+      location: profileData.location,
+      headline: profileData.headline,
+      summary: profileData.summary,
+      degree: profileData.degree,
+      branch: profileData.branch,
+      institution: profileData.institution,
+      graduationYear: profileData.graduationYear,
+      skills: profileData.skills,
+      github: profileData.github,
+      linkedin: profileData.linkedin,
+      portfolio: profileData.portfolio,
+      projects: profileData.projects,
+      experience: profileData.experience,
+    };
+    const response = await fetch('/api/careerpilot/application-assist', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        url: job.applicationUrl || job.canonicalUrl,
+        title: job.title,
+        company: job.company,
+        profile: applicationProfile,
+        confirmPersonalDataTransfer: true,
+      }),
+    });
+    const body: unknown = await response.json();
+    if (!response.ok) {
+      const message = body && typeof body === 'object' && 'error' in body && typeof body.error === 'string'
+        ? body.error
+        : 'TinyFish application assistance failed.';
+      throw new Error(message);
+    }
+    if (
+      !body ||
+      typeof body !== 'object' ||
+      !('submissionStatus' in body) ||
+      body.submissionStatus !== 'not_submitted' ||
+      !('fieldsFilled' in body) ||
+      !Array.isArray(body.fieldsFilled) ||
+      !('fieldsSkipped' in body) ||
+      !Array.isArray(body.fieldsSkipped)
+    ) {
+      throw new Error('TinyFish did not confirm that the application remains unsubmitted.');
+    }
+    return {
+      fieldsFilled: body.fieldsFilled.filter((item): item is string => typeof item === 'string'),
+      fieldsSkipped: body.fieldsSkipped.filter((item): item is string => typeof item === 'string'),
+      submissionStatus: 'not_submitted' as const,
+    };
   };
   const runSearch = () => {
     const searchInput: CareerSearchInput = {
@@ -127,7 +528,7 @@ function AppShell() {
   });
 
   const sidebar = <aside className="cp-sidebar">
-    <Link href="/" className="cp-brand" data-testid="link-brand"><span className="cp-logo"><NavigationLogo /></span><span>CareerPilot</span></Link>
+    <Link href="/" className="cp-brand" data-testid="link-brand"><span className="cp-logo"><NavigationLogo /></span><span>Vayora</span></Link>
     <div className="cp-nav-label">Workspace</div>
     <nav className="cp-nav" aria-label="Main navigation">
       <Link href="/" className={path === '/' ? 'active' : ''} data-testid="link-discover"><Search size={16}/>Discover jobs</Link>
@@ -136,6 +537,8 @@ function AppShell() {
     </nav>
     <div className="cp-nav-label" style={{ marginTop: 24 }}>Your account</div>
     <nav className="cp-nav">
+      <Link href="/master-profile" className={path === '/master-profile' ? 'active' : ''} data-testid="link-master-profile"><UserRound size={16}/>Master Profile</Link>
+      <Link href="/career-studio" className={path === '/career-studio' ? 'active' : ''} data-testid="link-career-studio"><FileText size={16}/>Career Studio</Link>
       <Link href="/preferences" className={path === '/preferences' ? 'active' : ''} data-testid="link-preferences"><SlidersHorizontal size={16}/>Search preferences</Link>
       <Link href="/settings" className={path === '/settings' ? 'active' : ''} data-testid="link-settings"><Settings2 size={16}/>Settings</Link>
     </nav>
@@ -143,17 +546,55 @@ function AppShell() {
   </aside>;
 
   return <div className="cp-shell">{sidebar}<main className="cp-main">
-    <header className="cp-topbar"><div className="cp-crumb"><span>CareerPilot</span><ArrowRight size={12}/><strong>{currentPage}</strong></div><div className="cp-live"><span className="cp-live-dot"/>{status.isLoading ? 'Checking search availability' : status.isError ? 'Search status unavailable' : status.data?.configured ? 'Live search ready' : 'Search provider not configured'}</div></header>
+    <header className="cp-topbar"><div className="cp-crumb"><span>Vayora</span><ArrowRight size={12}/><strong>{currentPage}</strong></div><div className="cp-live"><span className="cp-live-dot"/>{status.isLoading ? 'Checking search availability' : status.isError ? 'Search status unavailable' : status.data?.configured ? 'Live search ready' : 'Search provider not configured'}</div></header>
     <div className="cp-content"><RoutedErrorBoundary><Switch>
-      <Route path="/" component={() => <Discover query={query} setQuery={setQuery} role={role} setRole={setRole} location={location} setLocation={setSearchLocation} opportunityType={opportunityType} setOpportunityType={setOpportunityType} onSearch={submitSearch} onRefresh={runSearch} search={search} searchData={searchData} newSincePreviousScan={newSincePreviousScan} status={status} saved={saved} toggleSaved={toggleSaved} openJob={setSelected} addToTracker={addToTracker} verification={verification} verifyJob={verifyJob} verifyPending={verify.isPending} filtersOpen={searchFiltersOpen} setFiltersOpen={setSearchFiltersOpen} profile={profile} />} />
-      <Route path="/saved" component={() => <SavedPage jobs={saved} toggleSaved={toggleSaved} openJob={setSelected} addToTracker={addToTracker} />} />
-      <Route path="/tracker" component={() => <TrackerPage items={tracker} setTracker={setTracker} openJob={setSelected} />} />
-      <Route path="/preferences" component={() => <Preferences profile={profile} setProfile={setProfile} onSearch={runSearchWithProfile} />} />
-      <Route path="/settings" component={() => <Settings savedCount={saved.length} trackerCount={tracker.length} clearData={() => { localStorage.removeItem('careerpilot.saved.v1');localStorage.removeItem('careerpilot.tracker.v1');localStorage.removeItem('careerpilot.preferences.v1');localStorage.removeItem('careerpilot.lastSearchIds.v1');setSaved([]);setTracker([]);setProfile({ query:'',role:'',location:'',opportunityType:'both',skills:[],preferredIndustries:[],workAuthorization:'',targetCompanies:[],workArrangement:null,minimumCompensation:null,minimumCompensationCurrency:null,minimumCompensationPeriod:null,visaSponsorship:null });setNewSincePreviousScan(null);setToast('Browser data cleared'); }} />} />
+      <Route path="/">
+        <Discover query={query} setQuery={setQuery} role={role} setRole={setRole} location={location} setLocation={setSearchLocation} opportunityType={opportunityType} setOpportunityType={setOpportunityType} onSearch={submitSearch} onRefresh={runSearch} search={search} searchData={searchData} newSincePreviousScan={newSincePreviousScan} status={status} saved={saved} toggleSaved={toggleSaved} openJob={setSelected} addToTracker={addToTracker} verification={verification} verifyJob={verifyJob} verifyPending={verify.isPending} filtersOpen={searchFiltersOpen} setFiltersOpen={setSearchFiltersOpen} profile={profile} />
+      </Route>
+      <Route path="/saved">
+        <SavedPage jobs={saved} toggleSaved={toggleSaved} openJob={setSelected} addToTracker={addToTracker} />
+      </Route>
+      <Route path="/tracker">
+        <TrackerPage items={tracker} setTracker={setTracker} openJob={setSelected} openStudio={openCareerStudio} />
+      </Route>
+      <Route path="/preferences"><Preferences profile={profile} setProfile={setProfile} onSearch={runSearchWithProfile} /></Route>
+      <Route path="/master-profile"><MasterProfilePage profile={masterProfile} onSave={saveMasterProfile} /></Route>
+      <Route path="/career-studio">
+        <CareerStudioPage
+          profile={masterProfile}
+          jobs={[...new Map([...(studioJob ? [studioJob] : []), ...saved, ...tracker.map(item => item.job), ...(searchData?.results ?? [])].map(job => [job.id, job])).values()]}
+          selectedJob={studioJob}
+          resumeToLoadId={resumeToLoadId}
+          onSelectJob={setStudioJob}
+          resumes={resumeVersions}
+          emailDrafts={emailDrafts}
+          outreachDrafts={outreachDrafts}
+          onSaveResume={resume => setResumeVersions(current => [resume, ...current])}
+          onSaveEmail={draft => setEmailDrafts(current => [draft, ...current])}
+          onSaveCoverLetter={draft => setCoverLetters(current => [draft, ...current])}
+          coverLetters={coverLetters}
+          onSaveOutreach={draft => setOutreachDrafts(current => [draft, ...current])}
+          onLinkToTracker={linkApplicationArtifacts}
+          onLinkOutreach={linkOutreachDraft}
+          aiConfigured={Boolean(aiStatus?.configured)}
+          aiStatusMessage={aiStatus?.message ?? integrationError}
+          gmailConfigured={Boolean(gmailStatus?.configured)}
+          gmailConnected={Boolean(gmailStatus?.connected)}
+          gmailStatusMessage={gmailStatus?.message ?? integrationError}
+          tinyFishConfigured={Boolean(status.data?.configured)}
+          onGenerateMaterial={generateMaterial}
+          onConnectGmail={connectGmail}
+          onSendEmail={sendGmailEmail}
+          onAssistApplication={assistApplication}
+        />
+      </Route>
+      <Route path="/settings">
+        <Settings savedCount={saved.length} trackerCount={tracker.length} clearData={clearBrowserData} />
+      </Route>
       <Route component={NotFound} />
     </Switch></RoutedErrorBoundary></div>
   </main>
-   {selected && <JobDetail job={selected} profile={profile} close={() => setSelected(null)} saved={saved.some(job => job.id === selected.id)} toggleSaved={() => toggleSaved(selected)} addToTracker={() => addToTracker(selected)} verify={() => verifyJob(selected)} verifying={verify.isPending} verification={verification[selected.id]} />}
+   {selected && <JobDetail job={selected} close={() => setSelected(null)} saved={saved.some(job => job.id === selected.id)} toggleSaved={() => toggleSaved(selected)} addToTracker={() => addToTracker(selected)} prepareApplication={() => openCareerStudio(selected)} verify={() => verifyJob(selected)} verifying={verify.isPending} verification={verification[selected.id]} />}
   {toast && <div className="cp-toast" role="status" data-testid="status-toast">{toast}</div>}
   </div>;
 }
@@ -307,7 +748,7 @@ function Discover(props: {
   </>;
 }
 
-function SearchLoading() { return <><div className="cp-alert success"><LoaderCircle size={15} className="spin"/><span>Live search is running. CareerPilot is searching source pages, reading listings, checking links, removing duplicates, and calculating matches.</span></div><div className="cp-results-layout"><div className="cp-job-list"><div className="cp-skeleton"/><div className="cp-skeleton"/><div className="cp-skeleton"/></div><aside className="cp-card cp-side-card"><div className="cp-side-title">What the scan checks</div><p className="cp-scan-note">Completed steps and source counts appear after TinyFish returns the actual search and page-fetch results.</p></aside></div></>; }
+function SearchLoading() { return <><div className="cp-alert success"><LoaderCircle size={15} className="spin"/><span>Live search is running. Vayora is searching source pages, reading listings, checking links, removing duplicates, and calculating matches.</span></div><div className="cp-results-layout"><div className="cp-job-list"><div className="cp-skeleton"/><div className="cp-skeleton"/><div className="cp-skeleton"/></div><aside className="cp-card cp-side-card"><div className="cp-side-title">What the scan checks</div><p className="cp-scan-note">Completed steps and source counts appear after TinyFish returns the actual search and page-fetch results.</p></aside></div></>; }
 
 function JobCard({job,saved,onSave,onOpen,onTrack}:{job:JobListing;saved:boolean;onSave:()=>void;onOpen:()=>void;onTrack:()=>void}) {
   const statusClass = job.listingStatus === 'verified' ? 'green' : job.listingStatus === 'closed' || job.listingStatus === 'possibly-expired' ? 'amber' : '';
@@ -328,7 +769,7 @@ function SavedPage({jobs,toggleSaved,openJob,addToTracker}:{jobs:JobListing[];to
   return <><PageHeading eyebrow="Your shortlist" title="Saved jobs" subtitle="Openings you've kept for a closer look. Stored only in this browser."/><div className="cp-section-head"><h2>Saved openings</h2><span className="cp-meta">{jobs.length} {jobs.length===1?'opening':'openings'}</span></div>{jobs.length?<div className="cp-job-list">{jobs.map(job=><JobCard key={job.id} job={job} saved onSave={()=>toggleSaved(job)} onOpen={()=>openJob(job)} onTrack={()=>addToTracker(job)}/>)}</div>:<div className="cp-card cp-empty"><div className="cp-empty-icon"><Bookmark size={18}/></div><h3>Keep promising openings close</h3><p>Save jobs from Discover and they’ll appear here. Your shortlist remains on this device and browser only.</p><Link href="/" className="cp-button" style={{marginTop:16}} data-testid="link-find-jobs"><Search size={14}/>Find live jobs</Link></div>}</>;
 }
 
-function TrackerPage({items,setTracker,openJob}:{items:TrackerItem[];setTracker:React.Dispatch<React.SetStateAction<TrackerItem[]>>;openJob:(j:JobListing)=>void}) {
+function TrackerPage({items,setTracker,openJob,openStudio}:{items:TrackerItem[];setTracker:React.Dispatch<React.SetStateAction<TrackerItem[]>>;openJob:(j:JobListing)=>void;openStudio:(j:JobListing)=>void}) {
   const [filterText,setFilterText]=useState('');
   const [stageFilter,setStageFilter]=useState('');
   const [now,setNow]=useState(Date.now());
@@ -342,7 +783,8 @@ function TrackerPage({items,setTracker,openJob}:{items:TrackerItem[];setTracker:
   return <><PageHeading eyebrow="Your application pipeline" title="Application tracker" subtitle="Record dates, notes, and reminders for every opportunity. This tracker is stored in your browser."/><div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14}}><div className="cp-section-head" style={{margin:0}}><h2>Pipeline</h2></div><span className="cp-meta">{items.length} tracked {items.length===1?'opening':'openings'} · Local only</span></div>
     {!items.length?<div className="cp-card cp-empty"><div className="cp-empty-icon"><LayoutDashboard size={18}/></div><h3>Your application pipeline is clear</h3><p>Add an opening from search results to start tracking it through your next steps.</p><Link href="/" className="cp-button" style={{marginTop:16}}><Search size={14}/>Discover openings</Link></div>:<>
       <div className="cp-tracker-controls"><input aria-label="Search tracked applications" className="cp-input" value={filterText} onChange={e=>setFilterText(e.target.value)} placeholder="Search roles, companies, or locations"/><select aria-label="Filter tracker by stage" className="cp-select" value={stageFilter} onChange={e=>setStageFilter(e.target.value)}><option value="">All stages</option>{stages.map(stage=><option key={stage}>{stage}</option>)}</select></div>
-      {!visibleItems.length?<div className="cp-card cp-empty"><h3>No tracked applications match</h3><p>Clear the search or stage filter to see your full pipeline.</p></div>:<div className="cp-stage-grid">{grouped.map(({stage,items:stageItems})=><section key={stage} className="cp-card cp-stage"><div className="cp-stage-heading"><strong>{stage}</strong><span className="cp-stage-count">{stageItems.length}</span></div>{stageItems.map(item=>{const reminderDue=!!item.reminderAt&&Date.parse(item.reminderAt)<=now;return <div key={item.job.id} className="cp-stage-item"><strong style={{cursor:'pointer'}} onClick={()=>openJob(item.job)}>{item.job.title}</strong><span>{item.job.company}</span><select aria-label={`Move ${item.job.title} stage`} value={item.stage} onChange={e=>{const nextStage=e.target.value;update(item.job.id,{stage:nextStage,applicationDate:nextStage==='Applied'&&!item.applicationDate?new Date().toISOString().slice(0,10):item.applicationDate});}} data-testid={`select-stage-${item.job.id}`}>{stages.map(s=><option key={s}>{s}</option>)}</select><label className="cp-tracker-field">Application date<input type="date" value={item.applicationDate||''} onChange={e=>update(item.job.id,{applicationDate:e.target.value||null})}/></label><label className="cp-tracker-field">Reminder<input type="datetime-local" value={item.reminderAt||''} onChange={e=>update(item.job.id,{reminderAt:e.target.value||null})}/></label>{item.reminderAt&&<span className={`cp-reminder ${reminderDue?'due':''}`}><Clock3 size={12}/>{reminderDue?'Reminder due':'Reminder set'} · {new Date(item.reminderAt).toLocaleString()}</span>}<label className="cp-tracker-field">Notes<textarea rows={2} value={item.notes||''} onChange={e=>update(item.job.id,{notes:e.target.value})} placeholder="Add a personal note or next step"/></label><div className="cp-tracker-actions"><a href={item.job.applicationUrl||item.job.canonicalUrl} target="_blank" rel="noreferrer">Open listing <ExternalLink size={11}/></a><button className="cp-text-button" type="button" onClick={()=>setTracker(prev=>prev.filter(row=>row.job.id!==item.job.id))} data-testid={`button-remove-tracker-${item.job.id}`}><Trash2 size={12}/>Remove</button></div></div>})}</section>)}</div>}
+      {visibleItems.some(item=>item.outreachFollowUpAt) && <section className="cp-card career-panel"><h2>Outreach follow-ups</h2>{visibleItems.filter(item=>item.outreachFollowUpAt).map(item=>{const due=Date.parse(`${item.outreachFollowUpAt}T00:00:00`)<=now;return <div className="career-save-row" key={item.job.id}><span><strong>{item.job.title} · {item.job.company}</strong> — {due?'Follow-up due':'Follow-up scheduled'} {shortDate(item.outreachFollowUpAt)}</span><button className="cp-text-button" type="button" onClick={()=>openStudio(item.job)}>Open outreach draft</button></div>;})}</section>}
+      {!visibleItems.length?<div className="cp-card cp-empty"><h3>No tracked applications match</h3><p>Clear the search or stage filter to see your full pipeline.</p></div>:<div className="cp-stage-grid">{grouped.map(({stage,items:stageItems})=><section key={stage} className="cp-card cp-stage"><div className="cp-stage-heading"><strong>{stage}</strong><span className="cp-stage-count">{stageItems.length}</span></div>{stageItems.map(item=>{const reminderDue=!!item.reminderAt&&Date.parse(item.reminderAt)<=now;return <div key={item.job.id} className="cp-stage-item"><strong style={{cursor:'pointer'}} onClick={()=>openJob(item.job)}>{item.job.title}</strong><span>{item.job.company}</span>{(item.resumeVersionId||item.emailDraftId)&&<span className="cp-tag green">Resume and email linked</span>}{item.outreachDraftId&&<span className="cp-tag">Outreach: {pretty(item.outreachStatus)}</span>}{item.jobAnalysis&&<details className="career-job-description"><summary>View linked job analysis</summary><p>{item.jobAnalysis}</p></details>}<select aria-label={`Move ${item.job.title} stage`} value={item.stage} onChange={e=>{const nextStage=e.target.value;update(item.job.id,{stage:nextStage,applicationDate:nextStage==='Applied'&&!item.applicationDate?new Date().toISOString().slice(0,10):item.applicationDate});}} data-testid={`select-stage-${item.job.id}`}>{stages.map(s=><option key={s}>{s}</option>)}</select><label className="cp-tracker-field">Application date<input type="date" value={item.applicationDate||''} onChange={e=>update(item.job.id,{applicationDate:e.target.value||null})}/></label><label className="cp-tracker-field">Reminder<input type="datetime-local" value={item.reminderAt||''} onChange={e=>update(item.job.id,{reminderAt:e.target.value||null})}/></label>{item.reminderAt&&<span className={`cp-reminder ${reminderDue?'due':''}`}><Clock3 size={12}/>{reminderDue?'Reminder due':'Reminder set'} · {new Date(item.reminderAt).toLocaleString()}</span>}<label className="cp-tracker-field">Notes<textarea rows={2} value={item.notes||''} onChange={e=>update(item.job.id,{notes:e.target.value})} placeholder="Add a personal note or next step"/></label><div className="cp-tracker-actions"><a href={item.job.applicationUrl||item.job.canonicalUrl} target="_blank" rel="noreferrer">Open listing <ExternalLink size={11}/></a><button className="cp-text-button" type="button" onClick={()=>openStudio(item.job)}>Application kit</button><button className="cp-text-button" type="button" onClick={()=>setTracker(prev=>prev.filter(row=>row.job.id!==item.job.id))} data-testid={`button-remove-tracker-${item.job.id}`}><Trash2 size={12}/>Remove</button></div></div>})}</section>)}</div>}
     </>}
   </>;
 }
@@ -365,16 +807,15 @@ function PageHeading({eyebrow,title,subtitle}:{eyebrow:string;title:string;subti
 
 function Settings({savedCount,trackerCount,clearData}:{savedCount:number;trackerCount:number;clearData:()=>void}) {
   const [confirm,setConfirm]=useState(false);
-  return <><PageHeading eyebrow="Account and privacy" title="Settings" subtitle="Understand what CareerPilot checks, stores, and leaves in your control."/><section className="cp-card cp-form-card" style={{marginBottom:15}}><h2>Live search and verification</h2><p>CareerPilot checks real sources for the current search. Results can be incomplete when source pages are unavailable.</p><div className="cp-setting-row"><div><strong>Evidence before confidence</strong><span>Listing status, source details, and eligibility breakdowns reflect available listing evidence. They are guidance, not a promise that an employer will accept an application.</span></div><ShieldCheck size={20} color="#379566"/></div><div className="cp-setting-row"><div><strong>Re-check when you need to</strong><span>Use “Check listing again” in a job detail panel to re-check listing status and application link reachability.</span></div><Activity size={19} color="#687da9"/></div><div className="cp-setting-row"><div><strong>Sources may return partial results</strong><span>Unavailable sources are disclosed in search warnings and source coverage; CareerPilot does not fill gaps with sample jobs.</span></div><Info size={18} color="#a67b2c"/></div></section><section className="cp-card cp-form-card"><h2>Local browser data</h2><p>Your CareerPilot v1 data is not account-synced or uploaded as a personal profile.</p><div className="cp-setting-row"><div><strong>Saved openings</strong><span>Stored in this browser only. Current count: {savedCount}.</span></div><Bookmark size={18} color="#687da9"/></div><div className="cp-setting-row"><div><strong>Application tracker</strong><span>Stage updates are stored in this browser only. Current count: {trackerCount}.</span></div><LayoutDashboard size={18} color="#687da9"/></div><div className="cp-setting-row"><div><strong>Search preferences</strong><span>Search criteria and profile fields persist in local browser storage. No cross-device syncing in v1.</span></div><SlidersHorizontal size={18} color="#687da9"/></div><div style={{display:'flex',justifyContent:'flex-end',marginTop:17}}>{confirm?<div style={{display:'flex',gap:8,alignItems:'center'}}><span style={{fontSize:11,color:'#8a5260'}}>Remove all local CareerPilot data?</span><button className="cp-button danger" onClick={()=>{clearData();setConfirm(false)}} data-testid="button-confirm-clear">Clear local data</button><button className="cp-button secondary" onClick={()=>setConfirm(false)} data-testid="button-cancel-clear">Cancel</button></div>:<button className="cp-button danger" onClick={()=>setConfirm(true)} data-testid="button-clear-data"><Trash2 size={14}/>Clear local data</button>}</div></section></>;
+  return <><PageHeading eyebrow="Account and privacy" title="Settings" subtitle="Understand what Vayora checks, stores, and leaves in your control."/><section className="cp-card cp-form-card" style={{marginBottom:15}}><h2>Live search and verification</h2><p>Vayora checks real sources for the current search. Results can be incomplete when source pages are unavailable.</p><div className="cp-setting-row"><div><strong>Evidence before confidence</strong><span>Listing status, source details, and eligibility breakdowns reflect available listing evidence. They are guidance, not a promise that an employer will accept an application.</span></div><ShieldCheck size={20} color="#379566"/></div><div className="cp-setting-row"><div><strong>Re-check when you need to</strong><span>Use “Check listing again” in a job detail panel to re-check listing status and application link reachability.</span></div><Activity size={19} color="#687da9"/></div><div className="cp-setting-row"><div><strong>Sources may return partial results</strong><span>Unavailable sources are disclosed in search warnings and source coverage; Vayora does not fill gaps with sample jobs.</span></div><Info size={18} color="#a67b2c"/></div></section><section className="cp-card cp-form-card"><h2>Local browser data</h2><p>Your Vayora profile and application materials are stored in this browser only. They are not account-synced or uploaded to Vayora.</p><div className="cp-setting-row"><div><strong>Saved openings</strong><span>Stored in this browser only. Current count: {savedCount}.</span></div><Bookmark size={18} color="#687da9"/></div><div className="cp-setting-row"><div><strong>Application tracker</strong><span>Stage updates, linked resume/email versions, and outreach records are stored in this browser only. Current count: {trackerCount}.</span></div><LayoutDashboard size={18} color="#687da9"/></div><div className="cp-setting-row"><div><strong>Master Profile and application materials</strong><span>Contact details, projects, resume versions, email drafts, and outreach drafts remain local to this browser. Export or copy them before clearing browser data.</span></div><UserRound size={18} color="#687da9"/></div><div><strong>Search preferences</strong><span>Search criteria and profile fields persist in local browser storage. No cross-device syncing in v1.</span></div><div style={{display:'flex',justifyContent:'flex-end',marginTop:17}}>{confirm?<div style={{display:'flex',gap:8,alignItems:'center'}}><span style={{fontSize:11,color:'#8a5260'}}>Remove all local Vayora data?</span><button className="cp-button danger" onClick={()=>{clearData();setConfirm(false)}} data-testid="button-confirm-clear">Clear local data</button><button className="cp-button secondary" onClick={()=>setConfirm(false)} data-testid="button-cancel-clear">Cancel</button></div>:<button className="cp-button danger" onClick={()=>setConfirm(true)} data-testid="button-clear-data"><Trash2 size={14}/>Clear local data</button>}</div></section></>;
 }
 
-function JobDetail({job,profile,close,saved,toggleSaved,addToTracker,verify,verifying,verification}:{job:JobListing;profile:CareerSearchInput;close:()=>void;saved:boolean;toggleSaved:()=>void;addToTracker:()=>void;verify:()=>void;verifying:boolean;verification?:{explanation:string;evidence:string;checkedAt:string;confidence:number;listingStatus:string;applicationUrlReachable:boolean|null}}) {
+function JobDetail({job,close,saved,toggleSaved,addToTracker,prepareApplication,verify,verifying,verification}:{job:JobListing;close:()=>void;saved:boolean;toggleSaved:()=>void;addToTracker:()=>void;prepareApplication:()=>void;verify:()=>void;verifying:boolean;verification?:{explanation:string;evidence:string;checkedAt:string;confidence:number;listingStatus:string;applicationUrlReachable:boolean|null}}) {
   const breakdown=job.matchBreakdown||[];
-  return <div className="cp-detail-backdrop" onClick={close} role="presentation"><aside className="cp-detail" onClick={e=>e.stopPropagation()} aria-label={`${job.title} at ${job.company}`}><header className="cp-detail-head"><button type="button" className="cp-button secondary" style={{height:31,padding:'0 9px'}} onClick={close} data-testid="button-close-detail"><X size={14}/>Close</button><div style={{display:'flex',gap:7}}><button className={`cp-icon-btn ${saved?'saved':''}`} onClick={toggleSaved} aria-label={saved?'Unsave opening':'Save opening'} data-testid="button-detail-save"><Bookmark size={15} fill={saved?'currentColor':'none'}/></button><button className="cp-button" style={{height:32}} onClick={addToTracker} data-testid="button-detail-track"><ArrowDownRight size={14}/>Track</button></div></header>
+  return <div className="cp-detail-backdrop" onClick={close} role="presentation"><aside className="cp-detail" onClick={e=>e.stopPropagation()} aria-label={`${job.title} at ${job.company}`}><header className="cp-detail-head"><button type="button" className="cp-button secondary" style={{height:31,padding:'0 9px'}} onClick={close} data-testid="button-close-detail"><X size={14}/>Close</button><div style={{display:'flex',gap:7}}><button className={`cp-icon-btn ${saved?'saved':''}`} onClick={toggleSaved} aria-label={saved?'Unsave opening':'Save opening'} data-testid="button-detail-save"><Bookmark size={15} fill={saved?'currentColor':'none'}/></button><button className="cp-button secondary" style={{height:32}} onClick={prepareApplication}><FileText size={14}/>Prepare application</button><button className="cp-button" style={{height:32}} onClick={addToTracker} data-testid="button-detail-track"><ArrowDownRight size={14}/>Track</button></div></header>
     <div className="cp-detail-body"><div className="cp-detail-summary"><div style={{display:'flex',justifyContent:'space-between',gap:10}}><div><div className="cp-eyebrow">{job.sourceName}</div><h2>{job.title}</h2><p>{job.company} {job.location?`· ${job.location}`:''}</p></div><div className="cp-company-mark" style={{width:44,height:44}}>{job.company.slice(0,2).toUpperCase()}</div></div><div className="cp-tags" style={{margin:'2px 0 15px'}}><span className={`cp-tag ${job.listingStatus==='verified'?'green':'amber'}`}><ShieldCheck size={11} style={{display:'inline',verticalAlign:'-2px',marginRight:3}}/>{pretty(job.listingStatus)}</span><span className="cp-tag">{pretty(job.employmentType)}</span>{job.workArrangement&&<span className="cp-tag">{pretty(job.workArrangement)}</span>}{job.experienceLevel&&<span className="cp-tag">{job.experienceLevel}</span>}</div><div style={{display:'flex',gap:8,flexWrap:'wrap'}}><a className="cp-button" href={job.applicationUrl||job.canonicalUrl} target="_blank" rel="noreferrer" data-testid="link-apply-job"><ExternalLink size={14}/>{job.applicationUrl?'Apply on source':'Open source listing'}</a><button className="cp-button secondary" onClick={verify} disabled={verifying} data-testid="button-verify-job">{verifying?<LoaderCircle size={14} className="spin"/>:<ShieldCheck size={14}/>}Check listing again</button></div><p className="cp-inline-note" style={{marginTop:9}}>A deeper TinyFish Agent check may use your TinyFish account credits.</p></div>
       <div className="cp-detail-section"><h3>Match to your profile · {job.matchScore}%</h3><p>{job.matchExplanation}</p>{breakdown.map((factor,i)=><div key={`${factor.label}-${i}`} className="cp-match-factor"><span className={`cp-factor-dot ${factor.status==='unknown'?'unknown':factor.status==='mismatch'?'mismatch':''}`}/><span><strong style={{color:'#46536a'}}>{factor.label}</strong> · {factor.explanation}</span><span style={{marginLeft:'auto',whiteSpace:'nowrap',color:'#8a95a4'}}>{factor.points>0?'+':''}{factor.points}</span></div>)}</div>
       <div className="cp-detail-section"><h3>Listing evidence</h3><p>{job.verificationNote}</p><p style={{marginTop:7}}>Last checked: {new Date(job.lastCheckedAt).toLocaleString()} · Confidence {Math.round(job.verificationConfidence*100)}%</p>{verification&&<div className="cp-alert success" style={{marginTop:11,marginBottom:0}}><CheckCircle2 size={15}/><span><strong>Checked {new Date(verification.checkedAt).toLocaleString()}</strong><br/>{verification.explanation}<br/><span style={{opacity:.85}}>Evidence: {verification.evidence} · Application link {verification.applicationUrlReachable===null?'not confirmed':verification.applicationUrlReachable?'reachable':'not reachable'} · Confidence {Math.round(verification.confidence*100)}%</span></span></div>}</div>
-      <ApplicationKit job={job} profile={profile}/>
       {(job.requiredSkills.length>0||job.preferredSkills.length>0)&&<div className="cp-detail-section"><h3>Skills</h3>{job.requiredSkills.length>0&&<p><strong>Required</strong><br/>{job.requiredSkills.join(' · ')}</p>}{job.preferredSkills.length>0&&<p style={{marginTop:7}}><strong>Preferred</strong><br/>{job.preferredSkills.join(' · ')}</p>}</div>}
       <div className="cp-detail-section"><h3>Eligibility details</h3><p><strong>Education:</strong> {job.educationRequirements||'Not specified in the listing'}</p><p style={{marginTop:5}}><strong>Graduation year:</strong> {job.graduationYearRequirements||'Not specified in the listing'}</p><p style={{marginTop:5}}><strong>Work authorization:</strong> {job.workAuthorization||'Not specified'}</p><p style={{marginTop:5}}><strong>Visa sponsorship:</strong> {pretty(job.visaSponsorship)}</p></div>
       <div className="cp-detail-section"><h3>Compensation and timing</h3><p>{money(job)||'Compensation not listed'}{job.postedAt?` · Posted ${shortDate(job.postedAt)}`:''}{job.deadline?` · Apply by ${shortDate(job.deadline)}`:''}</p></div>
@@ -382,43 +823,6 @@ function JobDetail({job,profile,close,saved,toggleSaved,addToTracker,verify,veri
       <div className="cp-detail-section"><h3>Source</h3><p>Found on {job.sourceName}. <a href={job.sourceUrl} target="_blank" rel="noreferrer" style={{color:'#315de2',fontWeight:650}}>View source listing <ExternalLink size={11} style={{display:'inline',verticalAlign:'-1px'}}/></a></p>{job.alternativeSources.length>0&&<p style={{marginTop:7}}>Also listed at: {job.alternativeSources.join(', ')}</p>}</div>
     </div></aside></div>;
 }
-function ApplicationKit({job,profile}:{job:JobListing;profile:CareerSearchInput}) {
-  const [open,setOpen]=useState(false);
-  const [active,setActive]=useState<'resume'|'letter'|'email'>('resume');
-  const [copied,setCopied]=useState(false);
-  const relevantSkills=(profile.skills||[]).filter(skill=>job.description?.toLowerCase().includes(skill.toLowerCase()));
-  const skillsText=relevantSkills.length?relevantSkills.join(', '):'[skills you have personally used in relevant work, coursework, or projects]';
-  const makeDrafts=()=>({
-    resume:`• [Action you personally took] on [a real project, role, or course assignment] using ${skillsText}. Add a result or measure you can verify.\n\n• [A second real accomplishment] that demonstrates [a qualification named in this listing]. Replace every bracket with your own factual details.`,
-    letter:`Dear ${job.company} Hiring Team,\n\nI am applying for the ${job.title} opportunity. My background includes [a real project, role, or course experience from your history]. In that example, I used ${skillsText} to [describe your actual contribution and a result you can verify].\n\nYour listing describes [one responsibility or requirement that genuinely interests you]. I would welcome the chance to discuss how my real experience relates to the role.\n\nThank you for your consideration,\n[Your name]`,
-    email:`Subject: Application for ${job.title}\n\nHello ${job.company} Hiring Team,\n\nI am applying for the ${job.title} opening. My relevant background includes [one factual example from your experience] and [a verifiable result]. I have attached my resume for review.\n\nThank you,\n[Your name]\n[Your contact information]`,
-  });
-  const [drafts,setDrafts]=useState(makeDrafts);
-  useEffect(()=>{setDrafts(makeDrafts());setActive('resume');setCopied(false);},[job.id]);
-  const content=drafts[active];
-  const copyDraft=async()=>{
-    try { await navigator.clipboard.writeText(content);setCopied(true);window.setTimeout(()=>setCopied(false),1800); }
-    catch { setCopied(false); }
-  };
-  const checklist=[
-    `Review the actual responsibilities and qualifications on the source page for ${job.title}.`,
-    job.educationRequirements?`Compare your real education details with: ${job.educationRequirements}`:'Education requirements are not specified in the fetched listing; confirm them with the employer.',
-    job.graduationYearRequirements?`Check the stated graduation-year requirement: ${job.graduationYearRequirements}`:'Eligible graduation years are not specified in the fetched listing.',
-    job.visaSponsorship==='offered'?'The listing explicitly says visa sponsorship is offered. Confirm details with the employer.':job.visaSponsorship==='unavailable'?'The listing explicitly says visa sponsorship is unavailable.':`Visa sponsorship is ${pretty(job.visaSponsorship)}; confirm directly with the employer.`,
-    job.applicationUrl?'Open the source application page and review its required documents before submitting.':'Open the source listing and locate its genuine application page.',
-  ];
-  return <section className="cp-detail-section cp-application-kit">
-    <div className="cp-kit-heading"><div><h3>Application kit</h3><p>Editable drafts and a checklist based only on this listing and the skills you supplied.</p></div><button className="cp-button secondary" type="button" onClick={()=>setOpen(value=>!value)} data-testid="button-toggle-application-kit">{open?'Hide kit':'Prepare application'}</button></div>
-    {open&&<div className="cp-kit-body">
-      <div className="cp-alert warning"><Info size={14}/><span>Replace every bracket with truthful details from your own experience. CareerPilot does not submit applications.</span></div>
-      <div className="cp-kit-tabs"><button type="button" className={active==='resume'?'active':''} onClick={()=>setActive('resume')}>Resume bullets</button><button type="button" className={active==='letter'?'active':''} onClick={()=>setActive('letter')}>Cover letter</button><button type="button" className={active==='email'?'active':''} onClick={()=>setActive('email')}>Application email</button></div>
-      <textarea className="cp-kit-draft" value={content} onChange={e=>setDrafts(prev=>({...prev,[active]:e.target.value}))} aria-label={`${active} draft`} data-testid="textarea-application-draft"/>
-      <button className="cp-button secondary" type="button" onClick={copyDraft} data-testid="button-copy-application-draft">{copied?<><Check size={13}/>Copied</>:'Copy draft'}</button>
-      <div className="cp-kit-checklist"><strong>Before you apply</strong>{checklist.map((item,index)=><label key={index}><input type="checkbox"/><span>{item}</span></label>)}</div>
-    </div>}
-  </section>;
-}
-
 function getErrorText(error:unknown) { if(error instanceof Error)return error.message; if(typeof error==='object'&&error&&'error'in error)return String((error as {error:unknown}).error);return 'The live search service returned an unexpected error.'; }
 
 function RoutedErrorBoundary({ children }: { children: ReactNode }) {

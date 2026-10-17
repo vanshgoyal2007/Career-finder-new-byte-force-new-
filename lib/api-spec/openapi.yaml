@@ -11,7 +11,7 @@ tags:
   - name: health
     description: Health operations
   - name: careerpilot
-    description: CareerPilot live job search and listing verification
+    description: CareerPilot job search, application preparation, and optional provider integrations
 paths:
   /healthz:
     get:
@@ -100,6 +100,200 @@ paths:
                 $ref: "#/components/schemas/ApiError"
         "502":
           description: Verification provider failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /careerpilot/ai/status:
+    get:
+      operationId: getCareerPilotAiStatus
+      tags: [careerpilot]
+      summary: Check Gemini draft generation availability
+      responses:
+        "200":
+          description: AI provider configuration; no credential is returned
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AiGenerationStatus"
+  /careerpilot/generate-materials:
+    post:
+      operationId: generateCareerPilotMaterials
+      tags: [careerpilot]
+      summary: Generate a factual job-specific draft with Gemini
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GenerateCareerMaterialRequest"
+      responses:
+        "200":
+          description: Editable generated material
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GeneratedCareerMaterial"
+        "400":
+          description: Invalid request or missing consent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "429":
+          description: Generation rate limit
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "502":
+          description: Gemini request failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "503":
+          description: Gemini is not configured
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /careerpilot/gmail/status:
+    get:
+      operationId: getCareerPilotGmailStatus
+      tags: [careerpilot]
+      summary: Check Gmail OAuth and sending status
+      responses:
+        "200":
+          description: Gmail integration configuration; no token is returned
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GmailStatus"
+  /careerpilot/gmail/oauth/start:
+    get:
+      operationId: startCareerPilotGmailOAuth
+      tags: [careerpilot]
+      summary: Start Gmail OAuth authorization
+      responses:
+        "200":
+          description: Google authorization URL
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  authorizationUrl:
+                    type: string
+                    format: uri
+                required: [authorizationUrl]
+        "503":
+          description: OAuth client credentials are not configured
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /careerpilot/gmail/oauth/callback:
+    get:
+      operationId: completeCareerPilotGmailOAuth
+      tags: [careerpilot]
+      summary: Complete the Gmail OAuth redirect
+      parameters:
+        - in: query
+          name: code
+          schema:
+            type: string
+        - in: query
+          name: state
+          required: true
+          schema:
+            type: string
+      responses:
+        "302":
+          description: Redirect back to Career Studio after authorization
+        "400":
+          description: Invalid or expired OAuth state
+  /careerpilot/gmail/send:
+    post:
+      operationId: sendCareerPilotGmailMessage
+      tags: [careerpilot]
+      summary: Send a reviewed plain-text email with connected Gmail
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SendCareerPilotEmailRequest"
+      responses:
+        "200":
+          description: Gmail confirmed the message
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sent:
+                    type: boolean
+                  messageId:
+                    type: string
+                required: [sent, messageId]
+        "400":
+          description: Invalid email or send confirmation missing
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Gmail is not connected
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "429":
+          description: Send rate limit
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "502":
+          description: Gmail did not confirm the message
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /careerpilot/application-assist:
+    post:
+      operationId: assistCareerPilotApplication
+      tags: [careerpilot]
+      summary: Consent-gated TinyFish assistance for factual application fields
+      description: Uses a remote TinyFish Agent and may consume paid credits. It must not submit forms or answer legal or eligibility questions.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ApplicationAssistRequest"
+      responses:
+        "200":
+          description: Form assistance result confirmed as unsubmitted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApplicationAssistResult"
+        "400":
+          description: Invalid request, URL, or consent missing
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "429":
+          description: Agent run rate limit
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "502":
+          description: Agent run failed or timed out
           content:
             application/json:
               schema:
@@ -405,4 +599,254 @@ components:
         - confidence
         - explanation
         - evidence
-
+    AiGenerationStatus:
+      type: object
+      properties:
+        provider:
+          type: string
+          enum: [google-gemini]
+        configured:
+          type: boolean
+        message:
+          type: string
+      required: [provider, configured, message]
+    GmailStatus:
+      type: object
+      properties:
+        provider:
+          type: string
+          enum: [gmail]
+        configured:
+          type: boolean
+        connected:
+          type: boolean
+        message:
+          type: string
+      required: [provider, configured, connected, message]
+    CareerProfileProject:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        technologies:
+          type: string
+        contribution:
+          type: string
+        link:
+          type: string
+      required: [title, description, technologies, contribution, link]
+    CareerProfileExperience:
+      type: object
+      properties:
+        role:
+          type: string
+        company:
+          type: string
+        dates:
+          type: string
+        description:
+          type: string
+      required: [role, company, dates, description]
+    CareerPilotProfile:
+      type: object
+      properties:
+        fullName:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        location:
+          type: string
+        headline:
+          type: string
+        summary:
+          type: string
+        degree:
+          type: string
+        branch:
+          type: string
+        institution:
+          type: string
+        graduationYear:
+          type: string
+        skills:
+          type: array
+          items:
+            type: string
+        projects:
+          type: array
+          items:
+            $ref: "#/components/schemas/CareerProfileProject"
+        experience:
+          type: array
+          items:
+            $ref: "#/components/schemas/CareerProfileExperience"
+        certifications:
+          type: array
+          items:
+            type: string
+        workAuthorization:
+          type: string
+        github:
+          type: string
+        linkedin:
+          type: string
+        portfolio:
+          type: string
+      required:
+        - fullName
+        - email
+        - phone
+        - location
+        - headline
+        - summary
+        - degree
+        - branch
+        - institution
+        - graduationYear
+        - skills
+        - projects
+        - experience
+        - certifications
+        - workAuthorization
+        - github
+        - linkedin
+        - portfolio
+    CareerMaterialJob:
+      type: object
+      properties:
+        title:
+          type: string
+        company:
+          type: string
+        location:
+          type: ["string", "null"]
+        description:
+          type: ["string", "null"]
+        requiredSkills:
+          type: array
+          items:
+            type: string
+        preferredSkills:
+          type: array
+          items:
+            type: string
+        educationRequirements:
+          type: ["string", "null"]
+        graduationYearRequirements:
+          type: ["string", "null"]
+      required: [title, company, requiredSkills, preferredSkills]
+    GenerateCareerMaterialRequest:
+      type: object
+      properties:
+        kind:
+          type: string
+          enum: [resume, application-email, outreach]
+        profile:
+          $ref: "#/components/schemas/CareerPilotProfile"
+        job:
+          $ref: "#/components/schemas/CareerMaterialJob"
+        consentToSendProfileToGemini:
+          type: boolean
+          const: true
+      required: [kind, profile, job, consentToSendProfileToGemini]
+    GeneratedCareerMaterial:
+      type: object
+      properties:
+        text:
+          type: string
+        model:
+          type: string
+      required: [text, model]
+    SendCareerPilotEmailRequest:
+      type: object
+      properties:
+        to:
+          type: string
+          format: email
+        subject:
+          type: string
+          maxLength: 998
+        text:
+          type: string
+          maxLength: 50000
+        confirmSend:
+          type: boolean
+          const: true
+      required: [to, subject, text, confirmSend]
+    ApplicationAssistProfile:
+      type: object
+      properties:
+        fullName:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        location:
+          type: string
+        headline:
+          type: string
+        summary:
+          type: string
+        degree:
+          type: string
+        branch:
+          type: string
+        institution:
+          type: string
+        graduationYear:
+          type: string
+        skills:
+          type: array
+          items:
+            type: string
+        github:
+          type: string
+        linkedin:
+          type: string
+        portfolio:
+          type: string
+        projects:
+          type: array
+          items:
+            $ref: "#/components/schemas/CareerProfileProject"
+        experience:
+          type: array
+          items:
+            $ref: "#/components/schemas/CareerProfileExperience"
+      required: [fullName, email, phone, location, skills, projects, experience]
+    ApplicationAssistRequest:
+      type: object
+      properties:
+        url:
+          type: string
+          format: uri
+        title:
+          type: string
+        company:
+          type: string
+        profile:
+          $ref: "#/components/schemas/ApplicationAssistProfile"
+        confirmPersonalDataTransfer:
+          type: boolean
+          const: true
+      required: [url, title, company, profile, confirmPersonalDataTransfer]
+    ApplicationAssistResult:
+      type: object
+      properties:
+        fieldsFilled:
+          type: array
+          items:
+            type: string
+        fieldsSkipped:
+          type: array
+          items:
+            type: string
+        submissionStatus:
+          type: string
+          enum: [not_submitted]
+      required: [fieldsFilled, fieldsSkipped, submissionStatus]

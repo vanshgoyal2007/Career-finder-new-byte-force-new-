@@ -152,3 +152,167 @@ export const VerifyCareerPilotListingResponse = zod.object({
 })
 
 
+/**
+ * @summary Check Gemini draft generation availability
+ */
+export const GetCareerPilotAiStatusResponse = zod.object({
+  "provider": zod.enum(['google-gemini']),
+  "configured": zod.boolean(),
+  "message": zod.string()
+})
+
+
+/**
+ * @summary Generate a factual job-specific draft with Gemini
+ */
+export const GenerateCareerPilotMaterialsBody = zod.object({
+  "kind": zod.enum(['resume', 'application-email', 'outreach']),
+  "profile": zod.object({
+  "fullName": zod.string(),
+  "email": zod.string(),
+  "phone": zod.string(),
+  "location": zod.string(),
+  "headline": zod.string(),
+  "summary": zod.string(),
+  "degree": zod.string(),
+  "branch": zod.string(),
+  "institution": zod.string(),
+  "graduationYear": zod.string(),
+  "skills": zod.array(zod.string()),
+  "projects": zod.array(zod.object({
+  "title": zod.string(),
+  "description": zod.string(),
+  "technologies": zod.string(),
+  "contribution": zod.string(),
+  "link": zod.string()
+})),
+  "experience": zod.array(zod.object({
+  "role": zod.string(),
+  "company": zod.string(),
+  "dates": zod.string(),
+  "description": zod.string()
+})),
+  "certifications": zod.array(zod.string()),
+  "workAuthorization": zod.string(),
+  "github": zod.string(),
+  "linkedin": zod.string(),
+  "portfolio": zod.string()
+}),
+  "job": zod.object({
+  "title": zod.string(),
+  "company": zod.string(),
+  "location": zod.string().nullish(),
+  "description": zod.string().nullish(),
+  "requiredSkills": zod.array(zod.string()),
+  "preferredSkills": zod.array(zod.string()),
+  "educationRequirements": zod.string().nullish(),
+  "graduationYearRequirements": zod.string().nullish()
+}),
+  "consentToSendProfileToGemini": zod.literal(true)
+})
+
+export const GenerateCareerPilotMaterialsResponse = zod.object({
+  "text": zod.string(),
+  "model": zod.string()
+})
+
+
+/**
+ * @summary Check Gmail OAuth and sending status
+ */
+export const GetCareerPilotGmailStatusResponse = zod.object({
+  "provider": zod.enum(['gmail']),
+  "configured": zod.boolean(),
+  "connected": zod.boolean(),
+  "message": zod.string()
+})
+
+
+/**
+ * @summary Start Gmail OAuth authorization
+ */
+export const StartCareerPilotGmailOAuthResponse = zod.object({
+  "authorizationUrl": zod.string().url()
+})
+
+
+/**
+ * @summary Complete the Gmail OAuth redirect
+ */
+export const CompleteCareerPilotGmailOAuthQueryParams = zod.object({
+  "code": zod.coerce.string().optional(),
+  "state": zod.coerce.string()
+})
+
+export const CompleteCareerPilotGmailOAuthResponse = zod.void()
+
+
+/**
+ * @summary Send a reviewed plain-text email with connected Gmail
+ */
+export const sendCareerPilotGmailMessageBodySubjectMax = 998;
+
+export const sendCareerPilotGmailMessageBodyTextMax = 50000;
+
+
+
+export const SendCareerPilotGmailMessageBody = zod.object({
+  "to": zod.string().email(),
+  "subject": zod.string().max(sendCareerPilotGmailMessageBodySubjectMax),
+  "text": zod.string().max(sendCareerPilotGmailMessageBodyTextMax),
+  "confirmSend": zod.literal(true)
+})
+
+export const SendCareerPilotGmailMessageResponse = zod.object({
+  "sent": zod.boolean(),
+  "messageId": zod.string()
+})
+
+
+/**
+ * Uses a remote TinyFish Agent and may consume paid credits. It must not submit forms or answer legal or eligibility questions.
+ * @summary Consent-gated TinyFish assistance for factual application fields
+ */
+export const AssistCareerPilotApplicationBody = zod.object({
+  "url": zod.string().url(),
+  "title": zod.string(),
+  "company": zod.string(),
+  "profile": zod.object({
+  "fullName": zod.string(),
+  "email": zod.string(),
+  "phone": zod.string(),
+  "location": zod.string(),
+  "headline": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "degree": zod.string().optional(),
+  "branch": zod.string().optional(),
+  "institution": zod.string().optional(),
+  "graduationYear": zod.string().optional(),
+  "skills": zod.array(zod.string()),
+  "github": zod.string().optional(),
+  "linkedin": zod.string().optional(),
+  "portfolio": zod.string().optional(),
+  "projects": zod.array(zod.object({
+  "title": zod.string(),
+  "description": zod.string(),
+  "technologies": zod.string(),
+  "contribution": zod.string(),
+  "link": zod.string()
+})),
+  "experience": zod.array(zod.object({
+  "role": zod.string(),
+  "company": zod.string(),
+  "dates": zod.string(),
+  "description": zod.string()
+}))
+}),
+  "confirmPersonalDataTransfer": zod.literal(true)
+})
+
+export const AssistCareerPilotApplicationResponse = zod.object({
+  "fieldsFilled": zod.array(zod.string()),
+  "fieldsSkipped": zod.array(zod.string()),
+  "submissionStatus": zod.enum(['not_submitted'])
+})
+
+
