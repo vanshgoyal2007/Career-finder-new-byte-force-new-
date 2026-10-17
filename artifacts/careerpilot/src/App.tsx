@@ -93,7 +93,7 @@ function capturedJobListing(job: CareerStudioJob): JobListing {
     lastCheckedAt: new Date().toISOString(),
     listingStatus: 'verification-needed',
     verificationConfidence: 0,
-    verificationNote: 'Captured from a browser page; Velmora has not verified the source.',
+    verificationNote: 'Captured from a browser page; Fitvory has not verified the source.',
     matchScore: 0,
     matchExplanation: 'No match score has been calculated for this captured page.',
     matchBreakdown: [],
@@ -528,7 +528,13 @@ function AppShell() {
   });
 
   const sidebar = <aside className="cp-sidebar">
-    <Link href="/" className="cp-brand" data-testid="link-brand"><span className="cp-logo"><NavigationLogo /></span><span>Velmora</span></Link>
+    <Link href="/" className="cp-brand" data-testid="link-brand">
+      <span className="cp-logo"><NavigationLogo /></span>
+      <span className="cp-brand-copy">
+        <span>Fitvory</span>
+        <span className="cp-brand-tagline">Find your fit. Own your next move.</span>
+      </span>
+    </Link>
     <div className="cp-nav-label">Workspace</div>
     <nav className="cp-nav" aria-label="Main navigation">
       <Link href="/" className={path === '/' ? 'active' : ''} data-testid="link-discover"><Search size={16}/>Discover jobs</Link>
@@ -546,7 +552,7 @@ function AppShell() {
   </aside>;
 
   return <div className="cp-shell">{sidebar}<main className="cp-main">
-    <header className="cp-topbar"><div className="cp-crumb"><span>Velmora</span><ArrowRight size={12}/><strong>{currentPage}</strong></div><div className="cp-live"><span className="cp-live-dot"/>{status.isLoading ? 'Checking search availability' : status.isError ? 'Search status unavailable' : status.data?.configured ? 'Live search ready' : 'Search provider not configured'}</div></header>
+    <header className="cp-topbar"><div className="cp-crumb"><span>Fitvory</span><ArrowRight size={12}/><strong>{currentPage}</strong></div><div className="cp-live"><span className="cp-live-dot"/>{status.isLoading ? 'Checking search availability' : status.isError ? 'Search status unavailable' : status.data?.configured ? 'Live search ready' : 'Search provider not configured'}</div></header>
     <div className="cp-content"><RoutedErrorBoundary><Switch>
       <Route path="/">
         <Discover query={query} setQuery={setQuery} role={role} setRole={setRole} location={location} setLocation={setSearchLocation} opportunityType={opportunityType} setOpportunityType={setOpportunityType} onSearch={submitSearch} onRefresh={runSearch} search={search} searchData={searchData} newSincePreviousScan={newSincePreviousScan} status={status} saved={saved} toggleSaved={toggleSaved} openJob={setSelected} addToTracker={addToTracker} verification={verification} verifyJob={verifyJob} verifyPending={verify.isPending} filtersOpen={searchFiltersOpen} setFiltersOpen={setSearchFiltersOpen} profile={profile} />
@@ -748,7 +754,7 @@ function Discover(props: {
   </>;
 }
 
-function SearchLoading() { return <><div className="cp-alert success"><LoaderCircle size={15} className="spin"/><span>Live search is running. Velmora is searching source pages, reading listings, checking links, removing duplicates, and calculating matches.</span></div><div className="cp-results-layout"><div className="cp-job-list"><div className="cp-skeleton"/><div className="cp-skeleton"/><div className="cp-skeleton"/></div><aside className="cp-card cp-side-card"><div className="cp-side-title">What the scan checks</div><p className="cp-scan-note">Completed steps and source counts appear after TinyFish returns the actual search and page-fetch results.</p></aside></div></>; }
+function SearchLoading() { return <><div className="cp-alert success"><LoaderCircle size={15} className="spin"/><span>Live search is running. Fitvory is searching source pages, reading listings, checking links, removing duplicates, and calculating matches.</span></div><div className="cp-results-layout"><div className="cp-job-list"><div className="cp-skeleton"/><div className="cp-skeleton"/><div className="cp-skeleton"/></div><aside className="cp-card cp-side-card"><div className="cp-side-title">What the scan checks</div><p className="cp-scan-note">Completed steps and source counts appear after TinyFish returns the actual search and page-fetch results.</p></aside></div></>; }
 
 function JobCard({job,saved,onSave,onOpen,onTrack}:{job:JobListing;saved:boolean;onSave:()=>void;onOpen:()=>void;onTrack:()=>void}) {
   const statusClass = job.listingStatus === 'verified' ? 'green' : job.listingStatus === 'closed' || job.listingStatus === 'possibly-expired' ? 'amber' : '';
@@ -812,11 +818,11 @@ function Settings({savedCount,trackerCount,clearData}:{savedCount:number;tracker
       <PageHeading
         eyebrow="Account and privacy"
         title="Settings"
-        subtitle="Understand what Velmora checks, stores, and leaves in your control."
+        subtitle="Understand what Fitvory checks, stores, and leaves in your control."
       />
       <section className="cp-card cp-form-card" style={{marginBottom:15}}>
         <h2>Live search and verification</h2>
-        <p>Velmora checks real sources for the current search. Results can be incomplete when source pages are unavailable.</p>
+        <p>Fitvory checks real sources for the current search. Results can be incomplete when source pages are unavailable.</p>
         <div className="cp-setting-row">
           <div>
             <strong>Evidence before confidence</strong>
@@ -834,14 +840,14 @@ function Settings({savedCount,trackerCount,clearData}:{savedCount:number;tracker
         <div className="cp-setting-row">
           <div>
             <strong>Sources may return partial results</strong>
-            <span>Unavailable sources are disclosed in search warnings and source coverage; Velmora does not fill gaps with sample jobs.</span>
+            <span>Unavailable sources are disclosed in search warnings and source coverage; Fitvory does not fill gaps with sample jobs.</span>
           </div>
           <Info size={18} color="#a67b2c"/>
         </div>
       </section>
       <section className="cp-card cp-form-card">
         <h2>Local browser data</h2>
-        <p>Your Velmora profile and application materials are stored in this browser only. They are not account-synced or uploaded to Velmora.</p>
+        <p>Your Fitvory profile and application materials are stored in this browser only. They are not account-synced or uploaded to Fitvory.</p>
         <div className="cp-setting-row">
           <div><strong>Saved openings</strong><span>Stored in this browser only. Current count: {savedCount}.</span></div>
           <Bookmark size={18} color="#687da9"/>
@@ -861,7 +867,7 @@ function Settings({savedCount,trackerCount,clearData}:{savedCount:number;tracker
         <div style={{display:'flex',justifyContent:'flex-end',marginTop:17}}>
           {confirm ? (
             <div style={{display:'flex',gap:8,alignItems:'center'}}>
-              <span style={{fontSize:11,color:'#8a5260'}}>Remove all local Velmora data?</span>
+              <span style={{fontSize:11,color:'#8a5260'}}>Remove all local Fitvory data?</span>
               <button className="cp-button danger" onClick={()=>{clearData();setConfirm(false)}} data-testid="button-confirm-clear">Clear local data</button>
               <button className="cp-button secondary" onClick={()=>setConfirm(false)} data-testid="button-cancel-clear">Cancel</button>
             </div>

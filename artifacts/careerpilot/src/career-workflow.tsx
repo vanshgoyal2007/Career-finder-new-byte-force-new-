@@ -494,7 +494,7 @@ export function MasterProfilePage({ profile, onSave }: ProfilePageProps) {
           <p className="cp-subtitle">
             Maintain one factual profile for job matching and application
             materials. It stays in this browser and is not uploaded to
-            Velmora.
+            Fitvory.
           </p>
         </div>
       </header>
@@ -1506,7 +1506,7 @@ export function CareerStudioPage({
     setSelectedOutreachId(draft.id);
     setOutreachMessage(
       outreachStatus === "contacted"
-        ? "Outreach marked as contacted by you. Velmora did not send it."
+        ? "Outreach marked as contacted by you. Fitvory did not send it."
         : "Outreach draft saved locally; no message was sent.",
     );
   };
@@ -2150,7 +2150,7 @@ export function CareerStudioPage({
             {outreachStatus === "contacted" && (
               <p className="career-empty-note">
                 This only records that you contacted them yourself; no message
-                will be sent from Velmora.
+                will be sent from Fitvory.
               </p>
             )}
             <div className="career-save-row">

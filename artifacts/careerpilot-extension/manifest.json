@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Velmora Job Companion",
+  "name": "Fitvory Job Companion",
   "version": "1.1.0",
   "description": "Capture job pages, review factual autofill suggestions, and open saved application materials.",
   "permissions": ["activeTab", "scripting", "tabs"],
@@ -9,7 +9,7 @@
     "http://127.0.0.1:4173/*"
   ],
   "action": {
-    "default_title": "Velmora Job Companion",
+    "default_title": "Fitvory Job Companion",
     "default_popup": "popup.html"
   }
 }

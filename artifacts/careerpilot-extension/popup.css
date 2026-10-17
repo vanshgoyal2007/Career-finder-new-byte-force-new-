@@ -9,6 +9,7 @@ body {
 main { padding: 16px; }
 h1 { margin: 0 0 6px; font-size: 18px; }
 p { line-height: 1.45; }
+.tagline { margin: 0 0 10px; color: #52627a; font-size: 11px; font-weight: 650; letter-spacing: .1px; }
 .muted { color: #748198; font-size: 12px; }
 label:not(.consent) { display: grid; gap: 5px; margin: 10px 0; font-weight: 600; }
 input:not([type="checkbox"]), select {
